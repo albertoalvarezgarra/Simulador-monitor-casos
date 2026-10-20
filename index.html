@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador Clínico Philips Efficia DFM100</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0b0e14">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: linear-gradient(135deg, #090d14 0%, #111823 100%);
+      color: #e2e8f0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .main-card {
+      background: #151d28;
+      border: 1px solid #28374a;
+      border-radius: 16px;
+      padding: 32px;
+      max-width: 680px;
+      width: 100%;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+      text-align: center;
+    }
+    .badge-philips {
+      display: inline-block;
+      background: #0077c8;
+      color: #fff;
+      font-weight: 800;
+      font-size: 12px;
+      letter-spacing: 1.5px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 12px;
+    }
+    h1 {
+      font-size: 26px;
+      font-weight: 800;
+      margin-bottom: 8px;
+      color: #ffffff;
+    }
+    p.subtitle {
+      font-size: 14px;
+      color: #94a3b8;
+      margin-bottom: 28px;
+      line-height: 1.5;
+    }
+    .role-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    @media (max-width: 580px) {
+      .role-grid { grid-template-columns: 1fr; }
+    }
+    .role-btn {
+      background: #1c2737;
+      border: 2px solid #2b3d54;
+      border-radius: 12px;
+      padding: 20px 16px;
+      cursor: pointer;
+      text-decoration: none;
+      color: inherit;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      transition: all 0.2s ease;
+    }
+    .role-btn:hover {
+      border-color: #0088ff;
+      background: #202d40;
+      transform: translateY(-2px);
+    }
+    .role-icon {
+      font-size: 38px;
+    }
+    .role-title {
+      font-size: 17px;
+      font-weight: 800;
+      color: #ffffff;
+    }
+    .role-desc {
+      font-size: 12px;
+      color: #8da2bb;
+      line-height: 1.4;
+    }
+    .demo-split-btn {
+      display: block;
+      width: 100%;
+      background: #1f334a;
+      border: 1px dashed #3a5372;
+      color: #70b4ff;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+      margin-bottom: 24px;
+      transition: background 0.15s ease;
+    }
+    .demo-split-btn:hover {
+      background: #253d58;
+      color: #ffffff;
+    }
+    .quick-pin-box {
+      background: #0d131c;
+      border: 1px solid #243447;
+      border-radius: 8px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      align-items: center;
+    }
+    .pin-input-group {
+      display: flex;
+      gap: 8px;
+      width: 100%;
+      max-width: 320px;
+    }
+    .pin-input {
+      flex: 1;
+      background: #192330;
+      border: 1px solid #2f435c;
+      border-radius: 6px;
+      padding: 10px 14px;
+      color: #00ff66;
+      font-family: monospace;
+      font-size: 18px;
+      font-weight: 900;
+      text-transform: uppercase;
+      text-align: center;
+      letter-spacing: 2px;
+    }
+    .pin-submit-btn {
+      background: #0088ff;
+      color: #fff;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 6px;
+      font-weight: 800;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .features-list {
+      margin-top: 24px;
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      font-size: 11px;
+      color: #64748b;
+    }
+    .feature-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="main-card">
+    <div class="badge-philips">SIMULACIÓN MÉDICA INTEGRAL</div>
+    <h1>Simulador Philips Efficia DFM100</h1>
+    <p class="subtitle">
+      Plataforma interactiva para entrenamiento clínico en emergencias médicas (Código Ictus, Código Infarto, TEP, Síncope, Politrauma, Intoxicaciones y Reanimación SVA).
+    </p>
+
+    <!-- ACCESO RÁPIDO SEGÚN ROL -->
+    <div class="role-grid">
+      <!-- ROL ALUMNO (TABLET) -->
+      <a href="student.html" class="role-btn" id="btnStudentRole">
+        <span class="role-icon">📟</span>
+        <span class="role-title">Pantalla Alumno</span>
+        <span class="role-desc">Monitor Philips Efficia DFM100 en Tablet con ondas ECG a 60 FPS, SpO2, PANI y desfibrilador funcional.</span>
+      </a>
+
+      <!-- ROL INSTRUCTOR (SMARTPHONE) -->
+      <a href="instructor.html" class="role-btn" id="btnInstructorRole">
+        <span class="role-icon">📱</span>
+        <span class="role-title">Móvil Instructor</span>
+        <span class="role-desc">Panel de control docente con 10 escenarios clínicos, deslizadores manuales y transiciones temporizadas.</span>
+      </a>
+    </div>
+
+    <!-- MODO DEMO / DOBLE PANTALLA -->
+    <a href="split-demo.html" class="demo-split-btn">
+      🖥️ Probar en este ordenador: Modo Doble Pantalla (Tablet + Móvil juntos)
+    </a>
+
+    <!-- UNIÓN RÁPIDA MEDIANTE PIN DE SALA -->
+    <div class="quick-pin-box">
+      <span style="font-size: 12px; color: #8da2bb; font-weight: 600;">¿Tienes el código de una Tablet? Conectar Móvil:</span>
+      <form class="pin-input-group" onsubmit="connectWithPin(event)">
+        <input type="text" id="pinInput" class="pin-input" placeholder="PIN" maxlength="6" autocomplete="off">
+        <button type="submit" class="pin-submit-btn">Conectar</button>
+      </form>
+    </div>
+
+    <!-- CARACTERÍSTICAS TÉCNICAS -->
+    <div class="features-list">
+      <span class="feature-item">✓ Conexión WebRTC P2P</span>
+      <span class="feature-item">✓ Escaneo con Código QR</span>
+      <span class="feature-item">✓ Audio Realista Philips</span>
+      <span class="feature-item">✓ Funciona Sin Instalación</span>
+    <!-- LEYENDA OBLIGATORIA DE AUTORÍA -->
+    <div style="margin-top: 18px; font-size: 11px; color: #5a6e85; letter-spacing: 0.5px;">
+      Propiedad de Alberto Á. Garra — Simulador Clínico Philips Efficia DFM100
+    </div>
+  </div>
+
+  <script>
+    function connectWithPin(e) {
+      e.preventDefault();
+      const pin = document.getElementById('pinInput').value.trim().toUpperCase();
+      if (pin) {
+        window.location.href = `instructor.html?room=${pin}`;
+      }
+    }
+
+    // Generar código de sala unificado si el usuario abre directamente
+    const commonRoom = Math.random().toString(36).substring(2, 6).toUpperCase();
+    document.getElementById('btnStudentRole').href = `student.html?room=${commonRoom}`;
+  </script>
+</body>
+</html>

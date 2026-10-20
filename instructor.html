@@ -1,0 +1,1945 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Panel de Instructor - Simulador Philips DFM100</title>
+  <link rel="stylesheet" href="css/instructor.css">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#131b26">
+  <style>
+    /* ── BANNER DE SUGERENCIA DERIVACIONES DERECHAS ─────────────────── */
+    .rleads-suggestion-banner {
+      display: none;
+      background: linear-gradient(135deg, #1a0d00 0%, #2d1800 100%);
+      border: 1.5px solid #ff8c00;
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin: 8px 0;
+      animation: pulseOrange 1.8s ease-in-out infinite;
+    }
+    .rleads-suggestion-banner.visible { display: block; }
+    @keyframes pulseOrange {
+      0%, 100% { border-color: #ff8c00; box-shadow: 0 0 0 0 rgba(255,140,0,0); }
+      50% { border-color: #ffb733; box-shadow: 0 0 8px 2px rgba(255,140,0,0.35); }
+    }
+    .rleads-suggestion-banner .rleads-title {
+      font-size: 12px; font-weight: 800; color: #ffb733;
+      margin-bottom: 8px; display: flex; align-items: center; gap: 6px;
+    }
+    .rleads-suggestion-banner .rleads-desc {
+      font-size: 11px; color: #e2b97e; margin-bottom: 10px; line-height: 1.4;
+    }
+    .rleads-btn-row { display: flex; gap: 6px; flex-wrap: wrap; }
+    .btn-rleads {
+      flex: 1; min-width: 140px;
+      padding: 9px 10px; border: none; border-radius: 6px;
+      font-size: 11px; font-weight: 700; cursor: pointer;
+      transition: filter 0.15s;
+    }
+    .btn-rleads:active { filter: brightness(0.8); }
+    .btn-rleads.pos { background: #b71c1c; color: #fff; }
+    .btn-rleads.neg { background: #1a4a1a; color: #9effa1; }
+
+    /* ── CHIP RCP ─────────────────────────────────────────────────────── */
+    .rcp-control-bar {
+      background: #0b1118;
+      border: 1.5px solid #333;
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin: 8px 0;
+    }
+    .rcp-control-bar .rcp-label {
+      font-size: 11px; font-weight: 800; color: #ff4d4d;
+      margin-bottom: 8px; letter-spacing: 0.5px;
+    }
+    .rcp-btn-row { display: flex; gap: 8px; }
+    .btn-cpr-start {
+      flex: 1; background: #b71c1c; color: #fff; border: none;
+      border-radius: 6px; padding: 11px 8px; font-size: 12px;
+      font-weight: 800; cursor: pointer; transition: background 0.15s;
+    }
+    .btn-cpr-start:active { background: #7f0000; }
+    .btn-cpr-start.active-cpr { background: #388e3c; }
+    .btn-cpr-stop {
+      flex: 1; background: #263040; color: #aaa; border: none;
+      border-radius: 6px; padding: 11px 8px; font-size: 12px;
+      font-weight: 700; cursor: pointer; transition: background 0.15s;
+    }
+    .btn-cpr-stop:active { background: #1a232e; }
+
+    /* ── SENSOR CHIPS ─────────────────────────────────────────────────── */
+    .sensor-chips-row {
+      display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 10px;
+    }
+    .sensor-chip {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: #1a2535; color: #7a9ab8; border: 1.5px solid #2a3f55;
+      border-radius: 20px; padding: 7px 12px; font-size: 11px;
+      font-weight: 700; cursor: pointer; transition: all 0.2s; user-select: none;
+    }
+    .sensor-chip.active {
+      background: #0a2a18; color: #00e676;
+      border-color: #00c853; box-shadow: 0 0 8px rgba(0,200,83,0.3);
+    }
+    .sensor-chip.active-ecg-leads {
+      background: #0d2233; color: #00cfff;
+      border-color: #00bcd4; box-shadow: 0 0 8px rgba(0,188,212,0.3);
+    }
+    .sensor-chip.active-defib {
+      background: #2a1600; color: #ffb300;
+      border-color: #ff8f00; box-shadow: 0 0 8px rgba(255,143,0,0.3);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- CABECERA FIJA SUPERIOR -->
+  <header class="instructor-header" style="flex-wrap:wrap;gap:4px;">
+    <div class="header-left">
+      <div class="instructor-title">PHILIPS DFM100</div>
+      <button class="btn-header-patient" id="btnInstructorPatientMode">ADULTO</button>
+    </div>
+
+    <!-- CRONÓMETROS -->
+    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+      <!-- Cronómetro de Caso (se inicia cuando el instructor hace clic por primera vez) -->
+      <div style="background:#0d1a2b;border:1px solid #1e3a5f;border-radius:6px;padding:3px 8px;display:flex;flex-direction:column;align-items:center;gap:1px;cursor:pointer;" id="caseTimerBox" title="Click para iniciar / pausar el cronómetro del caso">
+        <span style="font-size:8px;color:#64748b;font-weight:700;letter-spacing:0.5px;">CASO ▶</span>
+        <span id="caseTimerDisplay" style="font-family:monospace;font-size:13px;font-weight:900;color:#22d3ee;letter-spacing:1px;">00:00</span>
+      </div>
+      <!-- Cronómetro Libre (manual start/stop/reset) -->
+      <div style="background:#0d1a2b;border:1px solid #1e3a5f;border-radius:6px;padding:3px 8px;display:flex;flex-direction:column;align-items:center;gap:1px;">
+        <span style="font-size:8px;color:#64748b;font-weight:700;letter-spacing:0.5px;">LIBRE</span>
+        <span id="lapTimerDisplay" style="font-family:monospace;font-size:13px;font-weight:900;color:#a78bfa;letter-spacing:1px;">00:00</span>
+        <div style="display:flex;gap:3px;margin-top:1px;">
+          <button id="btnLapStart" title="Iniciar/Pausar" style="background:#1e3a5f;color:#a78bfa;border:none;border-radius:3px;padding:1px 5px;font-size:9px;cursor:pointer;">▶</button>
+          <button id="btnLapReset" title="Reiniciar" style="background:#1e3a5f;color:#a78bfa;border:none;border-radius:3px;padding:1px 5px;font-size:9px;cursor:pointer;">↺</button>
+        </div>
+      </div>
+      <!-- Cronómetro de Encendido del Desfibrilador del Alumno -->
+      <div style="background:#1a0d00;border:1px solid #7c3a00;border-radius:6px;padding:3px 8px;display:flex;flex-direction:column;align-items:center;gap:1px;" title="Tiempo que lleva encendido el desfibrilador del alumno">
+        <span style="font-size:8px;color:#ff8c00;font-weight:700;letter-spacing:0.5px;">⚡ DESFIB ON</span>
+        <span id="defibTimerInstructor" style="font-family:monospace;font-size:13px;font-weight:900;color:#ff8c00;letter-spacing:1px;">--:--</span>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px;align-items:center;">
+      <div id="syncIndicatorBadge" style="background:#1e293b;color:#94a3b8;border:1px solid #334155;border-radius:6px;padding:3px 10px;font-size:10px;font-weight:800;letter-spacing:0.5px;">⚡ SINCRO: <span id="syncIndicatorText" style="color:#ef4444;">OFF</span></div>
+      <!-- BOTÓN MIC INSTRUCTOR → ALUMNO -->
+      <button id="btnMicToggle" title="Activar/Desactivar micrófono instructor → alumno" style="background:#1e293b;color:#94a3b8;border:1px solid #334155;border-radius:6px;padding:3px 10px;font-size:10px;font-weight:800;cursor:pointer;">🎤 MIC: OFF</button>
+      <div class="connection-badge">
+        <span class="dot-status" id="connDot"></span>
+        <span id="connStatusText">PIN: ----</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- BANNER DE ALERTA DE DESCARGA ADMINISTRADA POR EL ALUMNO -->
+  <div class="student-event-banner" id="studentBanner">
+    <div>
+      <span id="bannerTitle">⚡ DESCARGA RECIBIDA: 150 J</span>
+      <div style="font-size: 10px; font-weight: normal; opacity: 0.85;" id="bannerSubtitle">Modo: Asincrónico</div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
+      <label style="font-size:10px;color:#ffcc44;font-weight:700;">Ritmo tras choque:</label>
+      <select id="selPostShockRhythm" style="font-size:10px;background:#1a1000;color:#ffcc44;border:1px solid #b45309;border-radius:4px;padding:3px 6px;">
+        <option value="sinus">Ritmo Sinusal</option>
+        <option value="sinus_brady">Bradicardia Sinusal</option>
+        <option value="afib_controlled">FA Controlada</option>
+        <option value="junctional">Escape de la Unión</option>
+        <option value="junctional_escape">Escape Unión AV (lento)</option>
+        <option value="idioventricular">Idioventricular</option>
+        <option value="pea_brady">AESP (lento)</option>
+        <option value="asystole">Asistolia</option>
+        <option value="vf_coarse">FV (persiste)</option>
+        <option value="vt">TV (persiste)</option>
+        <option value="pacing_capture">Captura Marcapasos</option>
+      </select>
+      <button class="banner-btn" id="btnQuickSinus">✓ Aplicar Ritmo</button>
+      <button class="banner-btn" id="btnQuickRefractory">Persiste Arritmia</button>
+      <button class="banner-btn" id="btnDismissBanner">✕</button>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       PESTAÑA 1: VISOR UNIFICADO EN VIVO (VISTA PRINCIPAL)
+       ========================================================================= -->
+  <main class="tab-content active" id="tabUnified">
+    <div class="unified-dashboard-container">
+
+      <!-- FILA 1: VISOR DE CONSTANTES + SENSORES & RCP (2 COLUMNAS) -->
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap:10px;">
+        
+        <!-- COLUMNA 1A: VISOR GLOBAL DEL PACIENTE -->
+        <div class="live-patient-visor-card" style="margin-bottom:0;">
+          <div class="visor-header">
+            <span class="visor-title">CONSTANTES EN VIVO</span>
+            <span class="visor-rhythm-badge" id="visorRhythmBadge">Sinusal (75 lpm)</span>
+          </div>
+
+          <div class="unified-vitals-grid">
+            <div class="visor-stat-box hr">
+              <span class="visor-stat-label">FC <span id="chipEcgStatus">OFF</span></span>
+              <span class="visor-stat-val" id="visorHr">75</span>
+            </div>
+            <div class="visor-stat-box spo2">
+              <span class="visor-stat-label">SpO2 <span id="chipSpo2Status">OFF</span></span>
+              <span class="visor-stat-val" id="visorSpo2">98%</span>
+            </div>
+            <div class="visor-stat-box bp">
+              <span class="visor-stat-label">PA <span id="chipNibpStatus">OFF</span></span>
+              <span class="visor-stat-val" id="visorBp">120/80</span>
+            </div>
+            <div class="visor-stat-box rr">
+              <span class="visor-stat-label">FR <span id="chipRespStatus">OFF</span></span>
+              <span class="visor-stat-val" id="visorRr">16</span>
+            </div>
+            <div class="visor-stat-box etco2">
+              <span class="visor-stat-label">EtCO2</span>
+              <span class="visor-stat-val" id="visorEtco2">38</span>
+            </div>
+            <div class="visor-stat-box temp">
+              <span class="visor-stat-label">Temp</span>
+              <span class="visor-stat-val" id="visorTemp">36.6</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- COLUMNA 1B: SENSORES Y CONTROL RCP -->
+        <div style="background:#101722; border:1px solid #23344a; border-radius:8px; padding:10px; display:flex; flex-direction:column; gap:8px;">
+          <div style="font-size:11px; color:#8da4be; font-weight:800;">SENSORES ACTIVOS:</div>
+          <div class="sensor-chips-row" style="margin-bottom:4px;">
+            <button class="sensor-chip active active-ecg-leads" id="chipSensorEcgLeads"><span>📉 Latiguillos (I/II/III)</span></button>
+            <button class="sensor-chip active active-defib" id="chipSensorDefibPads"><span>⚡ Palas / Parches</span></button>
+            <button class="sensor-chip active" id="chipSensorSpo2"><span>🩺 Pulsioxímetro</span></button>
+            <button class="sensor-chip active" id="chipSensorNibp"><span>🩹 Manguito PANI</span></button>
+            <button class="sensor-chip active" id="chipSensorResp"><span>🫁 Sensor FR</span></button>
+            <button class="sensor-chip active" id="chipSensorEtco2"><span>💨 Capnógrafo</span></button>
+          </div>
+
+          <div class="rcp-control-bar" style="margin-top:auto; padding:6px 10px;">
+            <div class="rcp-label" style="font-size:11px;">🫀 RCP / COMPRESIONES (100 cpm)</div>
+            <div class="rcp-btn-row">
+              <button class="btn-cpr-start" id="btnCprStart" style="padding:6px;">▶ Iniciar RCP</button>
+              <button class="btn-cpr-stop" id="btnCprStop" style="padding:6px;">⏹ Detener RCP</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BANNER SUGERENCIA DERIVACIONES DERECHAS VD -->
+      <div class="rleads-suggestion-banner" id="rleadsBanner">
+        <div class="rleads-title">💡 SCACEST INFERIOR detectado — ¿Descartar afectación de VD?</div>
+        <div class="rleads-desc">Selecciona el ECG de 12 derivaciones a enviar a la tablet:</div>
+        <div class="rleads-btn-row">
+          <button class="btn-rleads pos" id="btnSendVdPos">📈 Enviar ECG con VD Afectado (V4R ↑)</button>
+          <button class="btn-rleads neg" id="btnSendVdNeg">📉 Enviar ECG sin Afectación VD (V4R normal)</button>
+        </div>
+      </div>
+
+      <!-- FILA 2: APLICACIÓN DE CAMBIOS + AJUSTE DE CONSTANTES (2 COLUMNAS) -->
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap:10px;">
+        
+        <!-- COLUMNA 2A: MODO DE CAMBIOS Y TRANSICIÓN -->
+        <div class="transition-master-bar" style="margin-bottom:0;">
+          <div style="font-size: 11px; font-weight: 800; color: #cbd5e1;">MODO DE APLICACIÓN DE CAMBIOS:</div>
+          <div class="trans-controls-row">
+            <button class="btn-instant-apply" id="btnInstantApply">⚡ Instantáneo (0s)</button>
+            <button class="btn-timed-apply" id="btnTimedApply">⏱️ Programar Diferido</button>
+          </div>
+
+          <div class="trans-selectors-row">
+            <select class="trans-select" id="selDelaySec">
+              <option value="5">Iniciar en: 5 seg</option>
+              <option value="10">Iniciar en: 10 seg</option>
+              <option value="15">Iniciar en: 15 seg</option>
+              <option value="20">Iniciar en: 20 seg</option>
+              <option value="30" selected>Iniciar en: 30 seg</option>
+              <option value="45">Iniciar en: 45 seg</option>
+              <option value="60">Iniciar en: 1 min</option>
+              <option value="90">Iniciar en: 90 seg</option>
+              <option value="120">Iniciar en: 2 min</option>
+            </select>
+
+            <select class="trans-select" id="selDurationSec">
+              <option value="0">Transición: Brusca (0s)</option>
+              <option value="5" selected>Transición: Suave (5s)</option>
+              <option value="10">Transición: Gradual (10s)</option>
+              <option value="15">Transición: Gradual (15s)</option>
+              <option value="20">Transición: Lenta (20s)</option>
+              <option value="30">Transición: Muy lenta (30s)</option>
+              <option value="45">Transición: Lenta (45s)</option>
+              <option value="60">Transición: Muy lenta (60s)</option>
+              <option value="90">Transición: Extrema (90s)</option>
+            </select>
+          </div>
+
+          <div id="countdownBox" style="display: none; background: #0b1118; padding: 6px 10px; border-radius: 4px; font-size: 11px; color: #ffaa00; font-family: var(--font-mono); text-align: center; margin-top:6px;">
+            <span id="countdownText">Cambiando en: 30s...</span>
+            <button id="btnCancelTimed" style="background: #334458; color: #fff; border: none; padding: 2px 8px; border-radius: 4px; margin-left: 10px; cursor: pointer;">Cancelar</button>
+          </div>
+        </div>
+
+        <!-- COLUMNA 2B: DESLIZADORES DE CONSTANTES VITALES -->
+        <div class="sliders-accordion" style="margin-bottom:0;">
+          <div style="font-size: 11px; font-weight: 800; color: #cbd5e1; margin-bottom:6px;">AJUSTE DE CONSTANTES VITALES:</div>
+
+          <div class="param-slider-row">
+            <div class="param-slider-header">
+              <span style="color: #00ff66;">Frecuencia Cardíaca</span>
+              <span id="labelHrVal" style="color: #00ff66; font-family: monospace;">75 lpm</span>
+            </div>
+            <input type="range" class="v-slider" id="sliderHr" min="0" max="240" value="75">
+          </div>
+
+          <div class="param-slider-row">
+            <div class="param-slider-header">
+              <span style="color: #00f0ff;">Saturación SpO2</span>
+              <span id="labelSpo2Val" style="color: #00f0ff; font-family: monospace;">98 %</span>
+            </div>
+            <input type="range" class="v-slider" id="sliderSpo2" min="50" max="100" value="98">
+          </div>
+
+          <div class="param-slider-row">
+            <div class="param-slider-header">
+              <span style="color: #ffffff;">Presión Sistólica / Diastólica</span>
+              <span style="color: #ffffff; font-family: monospace;"><span id="labelSysVal">120</span>/<span id="labelDiaVal">80</span> mmHg</span>
+            </div>
+            <div style="display:flex; gap:8px;">
+              <input type="range" class="v-slider" id="sliderSys" min="30" max="240" value="120" style="flex:1;">
+              <input type="range" class="v-slider" id="sliderDia" min="20" max="140" value="80" style="flex:1;">
+            </div>
+          </div>
+
+          <div class="param-slider-row">
+            <div class="param-slider-header">
+              <span style="color: #ffd700;">Frecuencia Respiratoria / EtCO2</span>
+              <span style="color: #ffd700; font-family: monospace;"><span id="labelRrVal">16 rpm</span> | <span id="labelEtco2Val" style="color:#ffaa00;">38 mmHg</span></span>
+            </div>
+            <div style="display:flex; gap:8px;">
+              <input type="range" class="v-slider" id="sliderRr" min="0" max="50" value="16" style="flex:1;">
+              <input type="range" class="v-slider" id="sliderEtco2" min="5" max="75" value="38" style="flex:1;">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FILA 3: RITMOS CARDÍACOS + MARCAPASOS UMBRAL (2 COLUMNAS) -->
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap:10px;">
+        
+        <!-- COLUMNA 3A: SELECTOR Y BUSCADOR DE RITMOS -->
+        <div class="rhythm-search-section" style="margin-bottom:0;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <span style="font-size: 11px; font-weight: 800; color: #cbd5e1;">RITMOS CARDÍACOS (AHA/ERC)</span>
+            <span style="font-size: 10px; color: #00e676;" id="activeRhythmTag">Sinusal</span>
+          </div>
+          <input type="text" id="rhythmFilterInput" class="rhythm-search-input" placeholder="🔍 Filtrar ritmos (bloqueos, scacest, fa, tv, torsades...)">
+          <div class="rhythm-pills-container" id="rhythmListContainer" style="max-height:180px;"></div>
+        </div>
+
+        <!-- COLUMNA 3B: MARCAPASOS UMBRAL DE CAPTURA -->
+        <div style="background:#0e1826; border:1px solid #2d3f58; border-radius:8px; padding:10px; display:flex; flex-direction:column; justify-content:space-between;">
+          <div>
+            <div style="font-size:11px; font-weight:800; color:#e040fb; margin-bottom:4px;">⚡ MARCAPASOS — UMBRAL DE CAPTURA</div>
+            <div style="font-size:10px; color:#8da4be; margin-bottom:8px;">Corriente mínima (mA) a la que captura el marcapasos externo:</div>
+            <div style="display:flex; align-items:center; gap:10px;">
+              <label style="font-size:11px; color:#e040fb; font-weight:bold;">Umbral:</label>
+              <input type="range" id="sliderPacerThreshold" min="10" max="120" value="60" style="flex:1;">
+              <span id="labelPacerThreshold" style="font-family:monospace; color:#e040fb; font-weight:bold; min-width:50px;">60 mA</span>
+            </div>
+          </div>
+          <button id="btnSendPacerThreshold" style="margin-top:10px; width:100%; background:#5e35b1; color:#fff; border:none; border-radius:6px; padding:9px; font-size:11px; font-weight:700; cursor:pointer;">📡 Enviar Umbral al Monitor</button>
+        </div>
+      </div>
+
+      <!-- FILA 4: MÓDULO DE VOZ Y EVALUACIÓN GLASGOW (REPRODUCIR EN MONITOR DEL ALUMNO) -->
+      <div style="background:#0d1622; border:1px solid #22344a; border-radius:8px; padding:10px; margin-top:2px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+          <span style="font-size:11px; font-weight:800; color:#38bdf8;">🗣️ VOZ DEL PACIENTE & ESCALA DE GLASGOW (Audio en Monitor)</span>
+          <span style="font-size:10px; color:#64748b;">Pulsa para que el paciente hable / responda</span>
+        </div>
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:6px;">
+          <button class="vocal-btn" data-vocal-id="incomprehensible" style="background:#1e293b; color:#cbd5e1; border:1px solid #334155; border-radius:5px; padding:6px; font-size:10px; font-weight:700; cursor:pointer;">🔊 Quejidos / Incomprensible</button>
+          <button class="vocal-btn" data-vocal-id="inappropriate" style="background:#1e293b; color:#fde047; border:1px solid #854d0e; border-radius:5px; padding:6px; font-size:10px; font-weight:700; cursor:pointer;">🗣️ Palabras Inapropiadas</button>
+          <button class="vocal-btn" data-vocal-id="insults" style="background:#1e293b; color:#f87171; border:1px solid #991b1b; border-radius:5px; padding:6px; font-size:10px; font-weight:700; cursor:pointer;">😡 Insultos / Agresivo</button>
+          <button class="vocal-btn" data-vocal-id="confused" style="background:#1e293b; color:#fb923c; border:1px solid #9a3412; border-radius:5px; padding:6px; font-size:10px; font-weight:700; cursor:pointer;">❓ Respuesta Confusa</button>
+          <button class="vocal-btn" data-vocal-id="oriented" style="background:#1e293b; color:#4ade80; border:1px solid #166534; border-radius:5px; padding:6px; font-size:10px; font-weight:700; cursor:pointer;">✅ Respuesta Orientada</button>
+          <button class="vocal-btn" data-vocal-id="cough" style="background:#1e293b; color:#a78bfa; border:1px solid #6b21a8; border-radius:5px; padding:6px; font-size:10px; font-weight:700; cursor:pointer;">🫁 Tos Severa Paroxística</button>
+          <button class="vocal-btn" data-vocal-id="asphyxia" style="background:#1e293b; color:#fb7185; border:1px solid #9f1239; border-radius:5px; padding:6px; font-size:10px; font-weight:700; cursor:pointer;">😮‍💨 Asfixia / Estridor</button>
+          <button class="vocal-btn" data-vocal-id="scream" style="background:#1e293b; color:#f43f5e; border:1px solid #be123c; border-radius:5px; padding:6px; font-size:10px; font-weight:700; cursor:pointer;">😱 Grito de Dolor</button>
+          <button class="vocal-btn" data-vocal-id="cry" style="background:#1e293b; color:#67e8f9; border:1px solid #0e7490; border-radius:5px; padding:6px; font-size:10px; font-weight:700; cursor:pointer;">😭 Llanto Puro</button>
+        </div>
+
+      </div>
+
+    </div>
+  </main>
+
+  <!-- =========================================================================
+       PESTAÑA 2: NEUROLOGÍA & PUPILAS
+       ========================================================================= -->
+  <section class="tab-content" id="tabPupils">
+    <div style="padding:14px; max-width:600px; margin:0 auto;">
+      <div style="font-size:14px; font-weight:800; color:#a78bfa; margin-bottom:4px;">👁️ EXPLORACIÓN NEUROLÓGICA &mdash; PUPILAS</div>
+      <p style="font-size:11px; color:#8da4be; margin-bottom:12px;">Configura el diámetro basal (mm) y la reactividad luminosa fotomotora de cada ojo antes de enviar la prueba a la tablet del alumno:</p>
+
+      <div style="background:#0e1826; border:1px solid #2d3f58; border-radius:8px; padding:14px; margin-bottom:14px;">
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:12px;">
+          <div>
+            <label style="font-size:11px; font-weight:700; color:#94a3b8;">OJO IZQUIERDO (OI)</label>
+            <select id="selPupilSizeLeft" style="width:100%; background:#131f30; color:#e2e8f0; border:1px solid #334458; border-radius:6px; padding:8px; font-size:12px; margin-top:4px;">
+              <option value="1.5">1.5 mm &mdash; Miosis puntiforme</option>
+              <option value="2">2 mm &mdash; Miosis severa</option>
+              <option value="3">3 mm &mdash; Miosis moderada</option>
+              <option value="4" selected>4 mm &mdash; Normal (Isocoria)</option>
+              <option value="5">5 mm &mdash; Midriasis leve</option>
+              <option value="6">6 mm &mdash; Midriasis moderada</option>
+              <option value="7">7 mm &mdash; Midriasis severa</option>
+              <option value="8">8 mm &mdash; Máxima (Midriasis paralítica)</option>
+            </select>
+            <div style="margin-top:8px;">
+              <label style="font-size:10px; color:#94a3b8;">Reactividad OI:</label>
+              <select id="selPupilReactLeft" style="width:100%; background:#131f30; color:#e2e8f0; border:1px solid #334458; border-radius:6px; padding:6px; font-size:11px; margin-top:2px;">
+                <option value="true" selected>✅ Reactiva (Contracción +)</option>
+                <option value="false">❌ Arreactiva (Fija / Sin respuesta)</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label style="font-size:11px; font-weight:700; color:#94a3b8;">OJO DERECHO (OD)</label>
+            <select id="selPupilSizeRight" style="width:100%; background:#131f30; color:#e2e8f0; border:1px solid #334458; border-radius:6px; padding:8px; font-size:12px; margin-top:4px;">
+              <option value="1.5">1.5 mm &mdash; Miosis puntiforme</option>
+              <option value="2">2 mm &mdash; Miosis severa</option>
+              <option value="3">3 mm &mdash; Miosis moderada</option>
+              <option value="4" selected>4 mm &mdash; Normal (Isocoria)</option>
+              <option value="5">5 mm &mdash; Midriasis leve</option>
+              <option value="6">6 mm &mdash; Midriasis moderada</option>
+              <option value="7">7 mm &mdash; Midriasis severa</option>
+              <option value="8">8 mm &mdash; Máxima (Midriasis paralítica)</option>
+            </select>
+            <div style="margin-top:8px;">
+              <label style="font-size:10px; color:#94a3b8;">Reactividad OD:</label>
+              <select id="selPupilReactRight" style="width:100%; background:#131f30; color:#e2e8f0; border:1px solid #334458; border-radius:6px; padding:6px; font-size:11px; margin-top:2px;">
+                <option value="true" selected>✅ Reactiva (Contracción +)</option>
+                <option value="false">❌ Arreactiva (Fija / Sin respuesta)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <button id="btnSendPupils" style="width:100%; background:#7c3aed; color:#fff; border:none; border-radius:8px; padding:12px; font-size:13px; font-weight:800; cursor:pointer; box-shadow:0 4px 14px rgba(124,58,237,0.4);">👁️ Enviar Exploración Pupilar a la Tablet del Alumno</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================================
+       PESTAÑA 3: ORL / GARGANTA & ÚVULA
+       ========================================================================= -->
+  <section class="tab-content" id="tabAirway">
+    <div style="padding:14px; max-width:700px; margin:0 auto;">
+      <div style="font-size:14px; font-weight:800; color:#34d399; margin-bottom:4px;">🗣️ EXPLORACIÓN DE GARGANTA & OROFARINGE (ORL)</div>
+      <p style="font-size:11px; color:#8da4be; margin-bottom:12px;">Selecciona el hallazgo clínico orofaríngeo (úvula, pilares y amígdalas) para mostrar directamente en la tablet del alumno:</p>
+
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:10px; margin-bottom:14px;">
+        <div class="airway-card-item" data-airway-id="throat_normal" style="background:#131f30; border:2px solid #23344a; border-radius:8px; padding:10px; cursor:pointer;">
+          <img src="assets/airway/throat_normal.jpg" alt="Orofaringe normal" style="width:100%; height:110px; object-fit:cover; border-radius:6px; margin-bottom:6px;">
+          <div style="font-size:11px; font-weight:800; color:#34d399;">✅ Orofaringe y Úvula Normal</div>
+          <div style="font-size:10px; color:#8da4be;">Úvula centrada, pilares simétricos sin exudado ni edema.</div>
+        </div>
+
+        <div class="airway-card-item" data-airway-id="throat_edema_mild" style="background:#131f30; border:2px solid #23344a; border-radius:8px; padding:10px; cursor:pointer;">
+          <img src="assets/airway/throat_edema_mild.jpg" alt="Edema leve" style="width:100%; height:110px; object-fit:cover; border-radius:6px; margin-bottom:6px;">
+          <div style="font-size:11px; font-weight:800; color:#fde047;">⚠️ Edema Úvula Leve (Uvulitis)</div>
+          <div style="font-size:10px; color:#8da4be;">Úvula tumefacta con engrosamiento mucoso alérgico.</div>
+        </div>
+
+        <div class="airway-card-item" data-airway-id="throat_edema_mod" style="background:#131f30; border:2px solid #23344a; border-radius:8px; padding:10px; cursor:pointer;">
+          <img src="assets/airway/throat_edema_mod.jpg" alt="Edema moderado" style="width:100%; height:110px; object-fit:cover; border-radius:6px; margin-bottom:6px;">
+          <div style="font-size:11px; font-weight:800; color:#fb923c;">🔶 Edema Úvula Moderado</div>
+          <div style="font-size:10px; color:#8da4be;">Úvula globulosa muy engrosada y pálida serosa.</div>
+        </div>
+
+        <div class="airway-card-item" data-airway-id="throat_edema_severe" style="background:#131f30; border:2px solid #23344a; border-radius:8px; padding:10px; cursor:pointer;">
+          <img src="assets/airway/throat_edema_severe.jpg" alt="Edema Quincke" style="width:100%; height:110px; object-fit:cover; border-radius:6px; margin-bottom:6px;">
+          <div style="font-size:11px; font-weight:800; color:#f87171;">🔴 Edema Severo (Quincke)</div>
+          <div style="font-size:10px; color:#8da4be;">Gran úvula masivamente edematosa con estenosis del istmo.</div>
+        </div>
+
+        <div class="airway-card-item" data-airway-id="throat_burn" style="background:#131f30; border:2px solid #23344a; border-radius:8px; padding:10px; cursor:pointer;">
+          <img src="assets/airway/throat_burn.jpg" alt="Garganta quemada" style="width:100%; height:110px; object-fit:cover; border-radius:6px; margin-bottom:6px;">
+          <div style="font-size:11px; font-weight:800; color:#f97316;">🔥 Garganta Quemada / Térmica</div>
+          <div style="font-size:10px; color:#8da4be;">Eritema intenso difuso con flictenas y exudado fibrinoso.</div>
+        </div>
+
+        <div class="airway-card-item" data-airway-id="throat_abscess" style="background:#131f30; border:2px solid #23344a; border-radius:8px; padding:10px; cursor:pointer;">
+          <img src="assets/airway/throat_abscess.jpg" alt="Absceso periamigdalino" style="width:100%; height:110px; object-fit:cover; border-radius:6px; margin-bottom:6px;">
+          <div style="font-size:11px; font-weight:800; color:#c084fc;">🩺 Absceso Periamigdalino</div>
+          <div style="font-size:10px; color:#8da4be;">Abombamiento unilateral y desviación contralateral de úvula.</div>
+        </div>
+      </div>
+
+      <div style="background:#0e1826; border:1px solid #2d3f58; border-radius:8px; padding:10px; display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:11px; color:#cbd5e1;">Seleccionado: <strong id="selectedAirwayLabel" style="color:#34d399;">Orofaringe y Úvula Normal</strong></span>
+        <button id="btnSendAirway" style="background:#059669; color:#fff; border:none; border-radius:6px; padding:10px 18px; font-size:12px; font-weight:800; cursor:pointer;">🗣️ Enviar Imagen de Garganta a la Tablet</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================================
+       PESTAÑA 4: AUSCULTACIÓN CARDIOPULMONAR
+       ========================================================================= -->
+  <section class="tab-content" id="tabAuscultation">
+    <div style="padding:14px; max-width:700px; margin:0 auto;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <div>
+          <div style="font-size:14px; font-weight:800; color:#60a5fa;">🩺 AUSCULTACIÓN CARDIOPULMONAR</div>
+          <div style="font-size:11px; color:#8da4be;">Emite sonidos respiratorios o cardíacos de alta fidelidad por el monitor del alumno:</div>
+        </div>
+        <button id="btnStopAusc" style="background:#ef4444; color:#fff; border:none; border-radius:6px; padding:8px 14px; font-size:11px; font-weight:700; cursor:pointer;">⏹ Detener Sonido</button>
+      </div>
+
+      <!-- SONIDOS PULMONARES -->
+      <div style="background:#0e1826; border:1px solid #2d3f58; border-radius:8px; padding:12px; margin-bottom:12px;">
+        <div style="font-size:11px; font-weight:800; color:#38bdf8; margin-bottom:8px;">🫁 AUSCULTACIÓN PULMONAR (RESPIRATORIA):</div>
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:6px;">
+          <button class="ausc-btn" data-type="pulmonary" data-sound="normal" style="background:#131f30; color:#38bdf8; border:1px solid #23344a; border-radius:6px; padding:9px 8px; font-size:11px; font-weight:700; cursor:pointer; text-align:left;">🌊 Murmullo Vesicular Normal</button>
+          <button class="ausc-btn" data-type="pulmonary" data-sound="wheeze" style="background:#131f30; color:#fde047; border:1px solid #854d0e; border-radius:6px; padding:9px 8px; font-size:11px; font-weight:700; cursor:pointer; text-align:left;">〰️ Sibilancias (Broncoespasmo)</button>
+          <button class="ausc-btn" data-type="pulmonary" data-sound="crackles" style="background:#131f30; color:#f87171; border:1px solid #991b1b; border-radius:6px; padding:9px 8px; font-size:11px; font-weight:700; cursor:pointer; text-align:left;">🌧️ Crepitantes (EAP / IC)</button>
+          <button class="ausc-btn" data-type="pulmonary" data-sound="stridor" style="background:#131f30; color:#e879f9; border:1px solid #86198f; border-radius:6px; padding:9px 8px; font-size:11px; font-weight:700; cursor:pointer; text-align:left;">🚨 Estridor Inspiratorio</button>
+          <button class="ausc-btn" data-type="pulmonary" data-sound="rhonchi" style="background:#131f30; color:#a78bfa; border:1px solid #4c1d95; border-radius:6px; padding:9px 8px; font-size:11px; font-weight:700; cursor:pointer; text-align:left;">🌀 Roncus (Secreciones)</button>
+          <button class="ausc-btn" data-type="pulmonary" data-sound="silent" style="background:#131f30; color:#94a3b8; border:1px solid #334155; border-radius:6px; padding:9px 8px; font-size:11px; font-weight:700; cursor:pointer; text-align:left;">🔇 Tórax Silente / Abolición</button>
+        </div>
+      </div>
+
+      <!-- SONIDOS CARDÍACOS -->
+      <div style="background:#0e1826; border:1px solid #2d3f58; border-radius:8px; padding:12px;">
+        <div style="font-size:11px; font-weight:800; color:#4ade80; margin-bottom:8px;">❤️ AUSCULTACIÓN CARDÍACA:</div>
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:6px;">
+          <button class="ausc-btn" data-type="cardiac" data-sound="normal" style="background:#131f30; color:#4ade80; border:1px solid #166534; border-radius:6px; padding:9px 8px; font-size:11px; font-weight:700; cursor:pointer; text-align:left;">💓 R1-R2 Normales Rítmicos</button>
+          <button class="ausc-btn" data-type="cardiac" data-sound="systolic_murmur" style="background:#131f30; color:#f97316; border:1px solid #7c2d12; border-radius:6px; padding:9px 8px; font-size:11px; font-weight:700; cursor:pointer; text-align:left;">〜 Soplo Sistólico Eyectivo</button>
+          <button class="ausc-btn" data-type="cardiac" data-sound="s3_gallop" style="background:#131f30; color:#60a5fa; border:1px solid #1d4ed8; border-radius:6px; padding:9px 8px; font-size:11px; font-weight:700; cursor:pointer; text-align:left;">🐎 Galope por Tercer Tono (R3)</button>
+          <button class="ausc-btn" data-type="cardiac" data-sound="pericardial_rub" style="background:#131f30; color:#f43f5e; border:1px solid #9f1239; border-radius:6px; padding:9px 8px; font-size:11px; font-weight:700; cursor:pointer; text-align:left;">🔄 Roce Pericárdico</button>
+          <button class="ausc-btn" data-type="cardiac" data-sound="muffled" style="background:#131f30; color:#94a3b8; border:1px solid #334155; border-radius:6px; padding:9px 8px; font-size:11px; font-weight:700; cursor:pointer; text-align:left;">🔕 Tonos Apagados (Taponamiento)</button>
+        </div>
+      </div>
+
+      <div style="font-size:11px; color:#64748b; margin-top:8px;">Sonido activo en monitor: <strong id="activeAuscLabel" style="color:#60a5fa;">Ninguno</strong></div>
+    </div>
+  </section>
+
+  <!-- =========================================================================
+       PESTAÑA 5: BIBLIOTECA DE ECG DE 12 DERIVACIONES
+       ========================================================================= -->
+  <section class="tab-content" id="tab12Lead">
+    <div style="font-size: 13px; font-weight: 800; margin-bottom: 6px;">ELECTROCARDIOGRAMAS DE 12 DERIVACIONES</div>
+    <p style="font-size: 11px; color: #8da4be; margin-bottom: 10px;">
+      Selecciona y pulsa "Enviar a Tablet" cuando el alumno solicite realizar un ECG de 12 derivaciones al paciente.
+    </p>
+    <div class="ecg12-library-grid" id="ecg12LibraryContainer">
+      <!-- Inyectado desde scenarios-data.js -->
+    </div>
+  </section>
+
+  <!-- =========================================================================
+       PESTAÑA 6: ESCENARIOS CLÍNICOS PREESTABLECIDOS
+       ========================================================================= -->
+  <section class="tab-content" id="tabScenarios">
+    <div style="font-size: 13px; font-weight: 800; margin-bottom: 8px;">CASOS CLÍNICOS DE EMERGENCIA</div>
+    <div class="scenarios-grid" id="scenariosContainer"></div>
+  </section>
+
+  <!-- =========================================================================
+       PESTAÑA 7: REGISTRO DE EVENTOS DEL ALUMNO
+       ========================================================================= -->
+  <section class="tab-content" id="tabEvents">
+    <div style="font-size: 13px; font-weight: 800; margin-bottom: 8px;">HISTORIAL DE ACCIONES DEL ALUMNO</div>
+    <div class="event-log-container" id="eventLog">
+      <div class="log-entry">Sesión de simulación iniciada. Sensores en espera de activación...</div>
+    </div>
+    <button class="quick-step-btn" id="btnForceNibp" style="margin-top: 10px; width: 100%; padding: 12px;">Disparar Toma de PANI desde Móvil</button>
+  </section>
+
+  <!-- =========================================================================
+       PESTAÑA 8: PANTALLA EN TIEMPO REAL DEL ALUMNO
+       ========================================================================= -->
+  <section class="tab-content" id="tabPreview">
+    <div style="font-size:13px;font-weight:800;margin-bottom:8px;">PANTALLA DEL ALUMNO EN TIEMPO REAL</div>
+    <div style="font-size:11px;color:#64748b;margin-bottom:10px;">Vista en directo del monitor del alumno. Pulsa el botón para solicitar captura de pantalla.</div>
+    <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+      <button id="btnRequestPreview" style="background:#1e3a5f;color:#38bdf8;border:1px solid #0ea5e9;border-radius:6px;padding:8px 16px;font-size:11px;font-weight:700;cursor:pointer;">📸 Solicitar captura</button>
+      <button id="btnToggleLivePreview" style="background:#1e3a5f;color:#34d399;border:1px solid #16a34a;border-radius:6px;padding:8px 16px;font-size:11px;font-weight:700;cursor:pointer;">▶ Captura continua OFF</button>
+      <span style="font-size:10px;color:#64748b;align-self:center;" id="previewFpsLabel">-- fps</span>
+    </div>
+    <div style="background:#000;border:1px solid #1e3a5f;border-radius:8px;overflow:hidden;text-align:center;">
+      <img id="studentPreviewImg" src="" alt="Pantalla del alumno" style="max-width:100%;height:auto;display:block;" />
+      <div id="studentPreviewPlaceholder" style="padding:40px;color:#334155;font-size:12px;">Sin captura recibida aún.<br>Pulsa «Solicitar captura» o activa la captura continua.</div>
+    </div>
+  </section>
+
+  <!-- LEYENDA OBLIGATORIA DE AUTORÍA -->
+  <div class="author-legend">Propiedad de Alberto Á. Garra</div>
+
+  <!-- BARRA DE NAVEGACIÓN INFERIOR FIJA -->
+  <nav class="bottom-nav">
+    <button class="nav-tab active" data-tab="tabUnified">
+      <span class="nav-tab-icon">🎛️</span>
+      <span>Monitor</span>
+    </button>
+    <button class="nav-tab" data-tab="tabPupils">
+      <span class="nav-tab-icon">👁️</span>
+      <span>Pupilas</span>
+    </button>
+    <button class="nav-tab" data-tab="tabAirway">
+      <span class="nav-tab-icon">🗣️</span>
+      <span>Garganta</span>
+    </button>
+    <button class="nav-tab" data-tab="tabAuscultation">
+      <span class="nav-tab-icon">🩺</span>
+      <span>Auscultación</span>
+    </button>
+    <button class="nav-tab" data-tab="tab12Lead">
+      <span class="nav-tab-icon">📈</span>
+      <span>ECG 12D</span>
+    </button>
+    <button class="nav-tab" data-tab="tabScenarios">
+      <span class="nav-tab-icon">📋</span>
+      <span>Casos</span>
+    </button>
+    <button class="nav-tab" data-tab="tabEvents">
+      <span class="nav-tab-icon">⚡</span>
+      <span>Log</span>
+    </button>
+    <button class="nav-tab" data-tab="tabPreview">
+      <span class="nav-tab-icon">📺</span>
+      <span>Pantalla</span>
+    </button>
+  </nav>
+    </button>
+    <button class="nav-tab" data-tab="tab12Lead">
+      <span class="nav-tab-icon">📈</span>
+      <span>ECG 12D</span>
+    </button>
+    <button class="nav-tab" data-tab="tabEvents">
+      <span class="nav-tab-icon">⚡</span>
+      <span>Eventos</span>
+    </button>
+  </nav>
+
+  <!-- SCRIPTS -->
+  <script src="js/scenarios-data.js"></script>
+  <script src="js/peer-connection.js"></script>
+
+  <script>
+  /**
+   * LÓGICA DEL PANEL DE INSTRUCTOR
+   * Propiedad de Alberto Á. Garra
+   */
+  (function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const roomCode = (urlParams.get('room') || prompt('Introduce el código PIN de 4 letras que aparece en la tablet:', '') || 'DEMO').toUpperCase();
+
+    document.getElementById('connStatusText').textContent = `PIN: ${roomCode}`;
+
+    // ── Estado del paciente en el instructor (SENSORES CONECTADOS POR DEFECTO) ──
+    let patientState = {
+      rhythm: 'sinus',
+      hr: 75,
+      spo2: 98,
+      bpSys: 120,
+      bpDia: 80,
+      rr: 16,
+      etco2: 38,
+      temp: 36.6,
+      patientCategory: 'adult',
+      activeSensors: {
+        ecg_leads:  true,   // Latiguillos → derivaciones I, II, III
+        defib_pads: true,   // Palas / parches → derivación Palas
+        spo2:       true,
+        nibp:       true,
+        resp:       true,
+        etco2:      true
+      }
+    };
+
+    let cprActive = false;
+    let previousRhythmBeforeCpr = 'sinus';
+    let transitionCountdownInterval = null;
+    let transitionSmoothInterval = null;
+
+    // ── Conexión P2P ────────────────────────────────────────────────────────
+    const connection = new SimConnectionManager('instructor', {
+      roomCode: roomCode,
+      onStatusChange: (status) => {
+        const dot = document.getElementById('connDot');
+        if (status === 'connected') {
+          dot.className = 'dot-status connected';
+          document.getElementById('connStatusText').textContent = `Tablet OK (${roomCode})`;
+        } else {
+          dot.className = 'dot-status';
+          document.getElementById('connStatusText').textContent = status === 'connecting' ? 'Conectando...' : `PIN: ${roomCode}`;
+        }
+      },
+      onMessage: (msg) => handleStudentMessage(msg)
+    });
+    connection.connectToHost(roomCode);
+
+    // ── Sistema de pestañas ─────────────────────────────────────────────────
+    const navTabs = document.querySelectorAll('.nav-tab');
+    const tabContents = document.querySelectorAll('.tab-content');
+    navTabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        navTabs.forEach(t => t.classList.remove('active'));
+        tabContents.forEach(c => c.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById(tab.dataset.tab).classList.add('active');
+      });
+    });
+
+    // ── Actualizar visor en tiempo real ────────────────────────────────────
+    function updateVisorDisplays() {
+      const hasHr = patientState.activeSensors.ecg_leads || patientState.activeSensors.spo2;
+      document.getElementById('visorHr').textContent    = hasHr ? patientState.hr : '--';
+      document.getElementById('visorSpo2').textContent  = patientState.activeSensors.spo2  ? `${patientState.spo2}%` : '--';
+      document.getElementById('visorBp').textContent    = patientState.activeSensors.nibp  ? `${patientState.bpSys}/${patientState.bpDia}` : '--/--';
+      document.getElementById('visorRr').textContent    = patientState.activeSensors.resp  ? patientState.rr : '--';
+      document.getElementById('visorEtco2').textContent = patientState.activeSensors.etco2 ? patientState.etco2 : '--';
+      document.getElementById('visorTemp').textContent  = patientState.temp.toFixed(1);
+
+      const rObj = ECG_RHYTHMS.find(r => r.id === patientState.rhythm);
+      document.getElementById('visorRhythmBadge').textContent = rObj ? `${rObj.name} (${patientState.hr} lpm)` : patientState.rhythm;
+      document.getElementById('activeRhythmTag').textContent  = rObj ? rObj.name : patientState.rhythm;
+
+      // Estado de sensores en el visor
+      const ecgOn  = patientState.activeSensors.ecg_leads || patientState.activeSensors.defib_pads;
+      document.getElementById('chipEcgStatus').textContent  = ecgOn                             ? 'ON' : 'OFF';
+      document.getElementById('chipSpo2Status').textContent = patientState.activeSensors.spo2   ? 'ON' : 'OFF';
+      document.getElementById('chipNibpStatus').textContent = patientState.activeSensors.nibp   ? 'ON' : 'OFF';
+      document.getElementById('chipRespStatus').textContent = patientState.activeSensors.resp   ? 'ON' : 'OFF';
+    }
+
+    // ── Helper: enviar estado de sensores ──────────────────────────────────
+    function broadcastSensors() {
+      connection.send({
+        type: 'TOGGLE_SENSOR',
+        activeSensors: patientState.activeSensors
+      });
+    }
+
+    // ── Chips de sensores ──────────────────────────────────────────────────
+    // Latiguillos ECG (I/II/III)
+    const chipLeads = document.getElementById('chipSensorEcgLeads');
+    chipLeads.addEventListener('click', () => {
+      patientState.activeSensors.ecg_leads = !patientState.activeSensors.ecg_leads;
+      chipLeads.classList.toggle('active-ecg-leads', patientState.activeSensors.ecg_leads);
+      updateVisorDisplays();
+      broadcastSensors();
+      addLogEntry(`Sensor Latiguillos ECG (I/II/III): ${patientState.activeSensors.ecg_leads ? 'CONECTADO' : 'RETIRADO'}`);
+    });
+
+    // Palas / Parches desfibrilador
+    const chipDefib = document.getElementById('chipSensorDefibPads');
+    chipDefib.addEventListener('click', () => {
+      patientState.activeSensors.defib_pads = !patientState.activeSensors.defib_pads;
+      chipDefib.classList.toggle('active-defib', patientState.activeSensors.defib_pads);
+      updateVisorDisplays();
+      broadcastSensors();
+      addLogEntry(`Sensor Palas/Parches Desfibrilador: ${patientState.activeSensors.defib_pads ? 'CONECTADO' : 'RETIRADO'}`);
+    });
+
+    // Función genérica para el resto de sensores
+    function setupSensorChip(chipId, sensorKey, label) {
+      const chipEl = document.getElementById(chipId);
+      chipEl.addEventListener('click', () => {
+        patientState.activeSensors[sensorKey] = !patientState.activeSensors[sensorKey];
+        chipEl.classList.toggle('active', patientState.activeSensors[sensorKey]);
+        updateVisorDisplays();
+        broadcastSensors();
+        addLogEntry(`Sensor ${label}: ${patientState.activeSensors[sensorKey] ? 'CONECTADO' : 'RETIRADO'}`);
+      });
+    }
+    setupSensorChip('chipSensorSpo2',  'spo2',  'Pulsioxímetro SpO2');
+    setupSensorChip('chipSensorNibp',  'nibp',  'Manguito PANI');
+    setupSensorChip('chipSensorResp',  'resp',  'Sensor FR');
+    setupSensorChip('chipSensorEtco2', 'etco2', 'Capnógrafo EtCO2');
+
+    // ── Control RCP ────────────────────────────────────────────────────────
+    const btnCprStart = document.getElementById('btnCprStart');
+    const btnCprStop  = document.getElementById('btnCprStop');
+
+    btnCprStart.addEventListener('click', () => {
+      if (cprActive) return;
+      cprActive = true;
+      if (patientState.rhythm !== 'cpr_artifact') {
+        previousRhythmBeforeCpr = patientState.rhythm;
+      }
+      patientState.rhythm = 'cpr_artifact';
+      btnCprStart.classList.add('active-cpr');
+      btnCprStart.textContent = '🫀 RCP EN CURSO (100 cpm)';
+      // Activar palas automáticamente si no hay nada conectado
+      if (!patientState.activeSensors.ecg_leads && !patientState.activeSensors.defib_pads) {
+        patientState.activeSensors.defib_pads = true;
+        chipDefib.classList.add('active-defib');
+        updateVisorDisplays();
+        broadcastSensors();
+      }
+      connection.send({ type: 'SET_RHYTHM', rhythm: 'cpr_artifact' });
+      updateVisorDisplays();
+      addLogEntry('🫀 RCP iniciada — Artefacto de compresiones 100 cpm activo');
+      // Ocultar el banner de derivaciones derechas si se activa RCP
+      document.getElementById('rleadsBanner').classList.remove('visible');
+    });
+
+    btnCprStop.addEventListener('click', () => {
+      if (!cprActive) return;
+      cprActive = false;
+      btnCprStart.classList.remove('active-cpr');
+      btnCprStart.textContent = '▶ Iniciar Artefacto RCP';
+      // Al parar RCP volvemos al ritmo previo a RCP a no ser que el instructor haya seleccionado otro
+      if (patientState.rhythm === 'cpr_artifact') {
+        patientState.rhythm = previousRhythmBeforeCpr || 'sinus';
+        document.querySelectorAll('.rhythm-pill-item').forEach(p => {
+          p.classList.toggle('active', p.dataset.rhythmId === patientState.rhythm);
+        });
+      }
+      connection.send({ type: 'SET_RHYTHM', rhythm: patientState.rhythm });
+      updateVisorDisplays();
+      addLogEntry('⏹ RCP detenida — Analizando ritmo subyacente: ' + patientState.rhythm);
+    });
+
+    // ── Sugerencia de derivaciones derechas VD ─────────────────────────────
+    const rleadsBanner = document.getElementById('rleadsBanner');
+
+    function checkRightLeadsSuggestion(rhythmId) {
+      // Mostrar el banner solo en ritmos con SCACEST inferior (pueden afectar VD)
+      const inferiorRhythms = ['stemi_inferior'];
+      if (inferiorRhythms.includes(rhythmId)) {
+        rleadsBanner.classList.add('visible');
+      } else {
+        rleadsBanner.classList.remove('visible');
+      }
+    }
+
+    document.getElementById('btnSendVdPos').addEventListener('click', () => {
+      const ecgVdPos = ECG_12_LEAD_LIBRARY.find(e => e.id === 'ecg12_stemi_inferior_vd_pos');
+      if (ecgVdPos) {
+        connection.send({ type: 'SHOW_12_LEAD', ecg12: ecgVdPos });
+        addLogEntry('📤 [ECG 12D] Enviado: SCACEST Inferior CON afectación VD (V4R ↑)');
+        addLogEntry(`📋 [ECG VD+] Enviado: "${ecgVdPos.title}"`);
+      }
+    });
+
+    document.getElementById('btnSendVdNeg').addEventListener('click', () => {
+      const ecgVdNeg = ECG_12_LEAD_LIBRARY.find(e => e.id === 'ecg12_stemi_inferior_vd_neg');
+      if (ecgVdNeg) {
+        connection.send({ type: 'SHOW_12_LEAD', ecg12: ecgVdNeg });
+        addLogEntry('📤 [ECG 12D] Enviado: SCACEST Inferior sin afectación VD (V4R normal)');
+        addLogEntry(`📋 [ECG VD-] Enviado: "${ecgVdNeg.title}"`);
+      }
+    });
+
+    // ── Conmutador Adulto / Pediátrico ──────────────────────────────────
+    const btnPatient = document.getElementById('btnInstructorPatientMode');
+    btnPatient.addEventListener('click', () => {
+      const isPediatric = patientState.patientCategory === 'pediatric';
+      patientState.patientCategory = isPediatric ? 'adult' : 'pediatric';
+      btnPatient.className = patientState.patientCategory === 'pediatric' ? 'btn-header-patient pediatric' : 'btn-header-patient';
+      btnPatient.textContent = patientState.patientCategory === 'pediatric' ? 'PEDIÁTRICO' : 'ADULTO';
+      connection.send({ type: 'PATIENT_CATEGORY_CHANGED', category: patientState.patientCategory });
+      addLogEntry(`Categoría de paciente cambiada a: ${patientState.patientCategory.toUpperCase()}`);
+    });
+
+    // ── Catálogo de ritmos AHA / ERC ─────────────────────────────────────
+    const rhythmListContainer = document.getElementById('rhythmListContainer');
+    let lastCategory = '';
+
+    ECG_RHYTHMS.forEach(r => {
+      if (r.category !== lastCategory) {
+        lastCategory = r.category;
+        const catLabel = document.createElement('div');
+        catLabel.className = 'rhythm-category-label';
+        catLabel.textContent = `— ${lastCategory} —`;
+        rhythmListContainer.appendChild(catLabel);
+      }
+
+      const item = document.createElement('div');
+      item.className = 'rhythm-pill-item';
+      item.dataset.rhythmId = r.id;
+      item.dataset.name = r.name.toLowerCase();
+      item.dataset.desc = r.desc.toLowerCase();
+
+      // Etiqueta especial para RCP
+      const isCpr = r.id === 'cpr_artifact';
+      const hrLabel = r.defaultHr > 0 ? r.defaultHr + ' lpm' : (isCpr ? '~100 cpm' : 'Paro');
+
+      item.innerHTML = `
+        <div>
+          <div style="${isCpr ? 'color:#ff6b6b;font-weight:800;' : ''}">${r.name}</div>
+          <small style="color: #8da4be; font-size: 10px;">${r.desc}</small>
+        </div>
+        <span style="font-family: monospace; font-size: 11px; color: ${isCpr ? '#ff6b6b' : '#00ff66'};">${hrLabel}</span>
+      `;
+
+      item.addEventListener('click', () => {
+        document.querySelectorAll('.rhythm-pill-item').forEach(p => p.classList.remove('active'));
+        item.classList.add('active');
+        patientState.rhythm = r.id;
+        if (r.defaultHr >= 0 && r.id !== 'cpr_artifact') {
+          sliderHr.value = r.defaultHr;
+          labelHrVal.textContent = `${r.defaultHr} lpm`;
+          patientState.hr = r.defaultHr;
+        }
+
+        // Si es RCP, activar desde el botón de RCP (coherencia con chip)
+        if (r.id === 'cpr_artifact') {
+          btnCprStart.click();
+        } else {
+          // Si venía de RCP, reset
+          if (cprActive) {
+            cprActive = false;
+            btnCprStart.classList.remove('active-cpr');
+            btnCprStart.textContent = '▶ Iniciar Artefacto RCP';
+          }
+          checkRightLeadsSuggestion(r.id);
+        }
+
+        // Autoselección del ECG 12D congruente
+        autoSelect12Lead(r.id);
+        updateVisorDisplays();
+      });
+
+      rhythmListContainer.appendChild(item);
+    });
+
+    // ── Filtro de búsqueda de ritmos ─────────────────────────────────────
+    document.getElementById('rhythmFilterInput').addEventListener('input', (e) => {
+      const q = e.target.value.toLowerCase();
+      document.querySelectorAll('.rhythm-pill-item').forEach(item => {
+        const match = item.dataset.name.includes(q) || item.dataset.desc.includes(q);
+        item.style.display = match ? 'flex' : 'none';
+      });
+      // Mostrar cabeceras de categoría solo si hay al menos un item visible debajo
+      document.querySelectorAll('.rhythm-category-label').forEach(label => {
+        let next = label.nextElementSibling;
+        let hasVisible = false;
+        while (next && !next.classList.contains('rhythm-category-label')) {
+          if (next.style.display !== 'none') { hasVisible = true; break; }
+          next = next.nextElementSibling;
+        }
+        label.style.display = hasVisible ? '' : 'none';
+      });
+    });
+
+    // ── Autoselección de ECG 12D congruente con el ritmo ─────────────────
+    function autoSelect12Lead(rhythmId) {
+      if (typeof getCongruent12LeadEcg !== 'function') return;
+      const ecg12 = getCongruent12LeadEcg(rhythmId);
+      if (!ecg12) return;
+      // Resaltar la tarjeta correspondiente en la biblioteca
+      document.querySelectorAll('.ecg12-item-card').forEach(c => {
+        c.style.outline = c.dataset.ecgId === ecg12.id ? '2px solid #00e676' : 'none';
+      });
+    }
+
+    // ── Deslizadores de constantes ─────────────────────────────────────
+    const sliderHr = document.getElementById('sliderHr');
+    const labelHrVal = document.getElementById('labelHrVal');
+    sliderHr.addEventListener('input', () => {
+      patientState.hr = parseInt(sliderHr.value);
+      labelHrVal.textContent = `${patientState.hr} lpm`;
+      updateVisorDisplays();
+    });
+
+    const sliderSpo2 = document.getElementById('sliderSpo2');
+    const labelSpo2Val = document.getElementById('labelSpo2Val');
+    sliderSpo2.addEventListener('input', () => {
+      patientState.spo2 = parseInt(sliderSpo2.value);
+      labelSpo2Val.textContent = `${patientState.spo2} %`;
+      updateVisorDisplays();
+    });
+
+    const sliderSys = document.getElementById('sliderSys');
+    const labelSysVal = document.getElementById('labelSysVal');
+    sliderSys.addEventListener('input', () => {
+      patientState.bpSys = parseInt(sliderSys.value);
+      labelSysVal.textContent = `${patientState.bpSys} mmHg`;
+      updateVisorDisplays();
+    });
+
+    const sliderDia = document.getElementById('sliderDia');
+    const labelDiaVal = document.getElementById('labelDiaVal');
+    sliderDia.addEventListener('input', () => {
+      patientState.bpDia = parseInt(sliderDia.value);
+      labelDiaVal.textContent = `${patientState.bpDia} mmHg`;
+      updateVisorDisplays();
+    });
+
+    const sliderRr = document.getElementById('sliderRr');
+    const labelRrVal = document.getElementById('labelRrVal');
+    sliderRr.addEventListener('input', () => {
+      patientState.rr = parseInt(sliderRr.value);
+      labelRrVal.textContent = `${patientState.rr} rpm`;
+      updateVisorDisplays();
+    });
+
+    const sliderEtco2 = document.getElementById('sliderEtco2');
+    const labelEtco2Val = document.getElementById('labelEtco2Val');
+    sliderEtco2.addEventListener('input', () => {
+      patientState.etco2 = parseInt(sliderEtco2.value);
+      labelEtco2Val.textContent = `${patientState.etco2} mmHg`;
+      updateVisorDisplays();
+    });
+
+    // Valores actualmente aplicados en el monitor del alumno
+    let currentAppliedVitals = {
+      rhythm: 'sinus',
+      hr: 75,
+      spo2: 98,
+      bpSys: 120,
+      bpDia: 80,
+      rr: 16,
+      etco2: 38
+    };
+
+    // ── Aplicar cambios: Instantáneo vs Diferido ─────────────────────────
+    document.getElementById('btnInstantApply').addEventListener('click', () => {
+      cancelScheduledTransition();
+      currentAppliedVitals = {
+        rhythm: patientState.rhythm,
+        hr: patientState.hr,
+        spo2: patientState.spo2,
+        bpSys: patientState.bpSys,
+        bpDia: patientState.bpDia,
+        rr: patientState.rr,
+        etco2: patientState.etco2
+      };
+      connection.send({ type: 'UPDATE_VITALS', vitals: patientState });
+      connection.send({ type: 'SET_RHYTHM', rhythm: patientState.rhythm });
+      addLogEntry(`⚡ Cambio instantáneo aplicado: ${patientState.rhythm} | ${patientState.hr} lpm | SpO2: ${patientState.spo2}%`);
+    });
+
+    document.getElementById('btnTimedApply').addEventListener('click', () => {
+      const delaySec    = parseInt(document.getElementById('selDelaySec').value);
+      const durationSec = parseInt(document.getElementById('selDurationSec').value);
+
+      // Estado ORIGEN: exactamente lo que el monitor del alumno tiene en este momento
+      const fromVitals = { ...currentAppliedVitals };
+      // Estado OBJETIVO: los valores que el instructor configuró en los sliders y ritmos
+      const toVitals = {
+        rhythm: patientState.rhythm,
+        hr: patientState.hr,
+        spo2: patientState.spo2,
+        bpSys: patientState.bpSys,
+        bpDia: patientState.bpDia,
+        rr: patientState.rr,
+        etco2: patientState.etco2
+      };
+
+      scheduleTransition(delaySec, durationSec, fromVitals, toVitals);
+    });
+
+    document.getElementById('btnCancelTimed').addEventListener('click', cancelScheduledTransition);
+
+    function scheduleTransition(delaySec, durationSec, fromVitals, toVitals) {
+      cancelScheduledTransition();
+      let remaining = delaySec;
+      const countdownBox  = document.getElementById('countdownBox');
+      const countdownText = document.getElementById('countdownText');
+      countdownBox.style.display = 'block';
+
+      addLogEntry(`⏱️ Cambio programado: Iniciará en ${delaySec}s y tardará ${durationSec}s paulatinamente`);
+      countdownText.textContent = `Iniciando cambio en ${remaining}s... (SpO2 actual: ${fromVitals.spo2}%, FC: ${fromVitals.hr})`;
+
+      transitionCountdownInterval = setInterval(() => {
+        remaining--;
+        if (remaining > 0) {
+          countdownText.textContent = `Iniciando cambio en ${remaining}s... (SpO2 actual: ${fromVitals.spo2}%, FC: ${fromVitals.hr})`;
+        } else {
+          clearInterval(transitionCountdownInterval);
+          transitionCountdownInterval = null;
+          // Fase 2: Iniciar la modificación paulatina durante durationSec
+          applySmoothTransition(durationSec, fromVitals, toVitals);
+        }
+      }, 1000);
+    }
+
+    function applySmoothTransition(durationSec, fromVitals, toVitals) {
+      const countdownBox  = document.getElementById('countdownBox');
+      const countdownText = document.getElementById('countdownText');
+
+      // Si hay cambio de ritmo, se activa al inicio de la transición clínica
+      if (toVitals.rhythm !== fromVitals.rhythm) {
+        connection.send({ type: 'SET_RHYTHM', rhythm: toVitals.rhythm });
+      }
+
+      if (durationSec === 0) {
+        countdownBox.style.display = 'none';
+        currentAppliedVitals = { ...toVitals };
+        patientState = { ...patientState, ...toVitals };
+        connection.send({ type: 'UPDATE_VITALS', vitals: patientState });
+        connection.send({ type: 'SET_RHYTHM', rhythm: patientState.rhythm });
+        updateVisorDisplays();
+        addLogEntry(`⚡ Cambio completado instantáneamente`);
+        return;
+      }
+
+      countdownBox.style.display = 'block';
+      addLogEntry(`⏳ Iniciando modificación paulatina (${durationSec}s): SpO2 ${fromVitals.spo2}%→${toVitals.spo2}%, FC ${fromVitals.hr}→${toVitals.hr} lpm`);
+
+      const intervalMs = 500; // Cada 500ms interpolar paso a paso
+      const totalSteps = Math.max(1, Math.round((durationSec * 1000) / intervalMs));
+      let step = 0;
+
+      transitionSmoothInterval = setInterval(() => {
+        step++;
+        const t = Math.min(step / totalSteps, 1.0); // 0.0 a 1.0 lineal
+        const remainingSec = Math.max(0, Math.ceil(durationSec * (1 - t)));
+
+        // Interpolación lineal de cada parámetro vital
+        const interpHr    = Math.round(fromVitals.hr    + (toVitals.hr    - fromVitals.hr)    * t);
+        const interpSpo2  = Math.round(fromVitals.spo2  + (toVitals.spo2  - fromVitals.spo2)  * t);
+        const interpSys   = Math.round(fromVitals.bpSys + (toVitals.bpSys - fromVitals.bpSys) * t);
+        const interpDia   = Math.round(fromVitals.bpDia + (toVitals.bpDia - fromVitals.bpDia) * t);
+        const interpRr    = Math.round(fromVitals.rr    + (toVitals.rr    - fromVitals.rr)    * t);
+        const interpEtco2 = Math.round(fromVitals.etco2 + (toVitals.etco2 - fromVitals.etco2) * t);
+
+        const interpolated = {
+          ...patientState,
+          rhythm: toVitals.rhythm,
+          hr:    interpHr,
+          spo2:  interpSpo2,
+          bpSys: interpSys,
+          bpDia: interpDia,
+          rr:    interpRr,
+          etco2: interpEtco2
+        };
+
+        // Enviar al alumno
+        connection.send({ type: 'UPDATE_VITALS', vitals: interpolated });
+
+        // Actualizar el estado visual del instructor para ver la evolución
+        countdownText.textContent = `Modificando paulatinamente... (${remainingSec}s restantes) | SpO2: ${interpSpo2}%, FC: ${interpHr}`;
+        patientState.hr    = interpHr;
+        patientState.spo2  = interpSpo2;
+        patientState.bpSys = interpSys;
+        patientState.bpDia = interpDia;
+        patientState.rr    = interpRr;
+        patientState.etco2 = interpEtco2;
+        updateVisorDisplays();
+
+        if (step >= totalSteps) {
+          clearInterval(transitionSmoothInterval);
+          transitionSmoothInterval = null;
+          countdownBox.style.display = 'none';
+          currentAppliedVitals = { ...toVitals };
+          patientState = { ...patientState, ...toVitals };
+          updateVisorDisplays();
+          addLogEntry(`✅ Transición paulatina completada: SpO2 ${toVitals.spo2}%, FC ${toVitals.hr} lpm, PA ${toVitals.bpSys}/${toVitals.bpDia}`);
+        }
+      }, intervalMs);
+    }
+
+    function cancelScheduledTransition() {
+      if (transitionCountdownInterval) { clearInterval(transitionCountdownInterval); transitionCountdownInterval = null; }
+      if (transitionSmoothInterval)    { clearInterval(transitionSmoothInterval);    transitionSmoothInterval = null; }
+      document.getElementById('countdownBox').style.display = 'none';
+    }
+
+    // ── Biblioteca ECG de 12 derivaciones ─────────────────────────────────
+    const ecg12Container = document.getElementById('ecg12LibraryContainer');
+    ECG_12_LEAD_LIBRARY.forEach(ecg => {
+      const card = document.createElement('div');
+      card.className = 'ecg12-item-card';
+      card.dataset.ecgId = ecg.id;
+
+      const rightLeadsTag = ecg.isRightLeads
+        ? '<span style="background:#4a2000;color:#ff9800;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:700;">DERECHAS (VD)</span>'
+        : '';
+
+      const thumbHtml = ecg.imageUrl
+        ? `<div style="margin: 6px 0; border-radius: 4px; overflow: hidden; border: 1px solid #223348; background: #fff;">
+             <img src="${ecg.imageUrl}" alt="${ecg.title}" style="width: 100%; height: 85px; object-fit: cover; display: block;">
+           </div>`
+        : '';
+
+      card.innerHTML = `
+        <div class="ecg12-item-title">${ecg.title} ${rightLeadsTag}</div>
+        <div style="font-size: 11px; color: #79b8ff; font-weight: bold;">${ecg.category}</div>
+        ${thumbHtml}
+        <div class="ecg12-item-findings"><strong>Caso:</strong> ${ecg.clinicalCase}</div>
+        <div class="ecg12-item-findings"><strong>Hallazgos:</strong> ${ecg.findings}</div>
+        <button class="btn-send-12lead" data-id="${ecg.id}">📤 Enviar ECG 12D a la Tablet del Alumno</button>
+      `;
+
+      card.querySelector('.btn-send-12lead').addEventListener('click', () => {
+        connection.send({ type: 'SHOW_12_LEAD', ecg12: ecg });
+        addLogEntry(`📋 [ECG 12D] Enviado a la tablet: "${ecg.title}"`);
+      });
+
+      ecg12Container.appendChild(card);
+    });
+
+    // ── Escenarios clínicos — Motor Guiado ───────────────────────────────────
+    const scenariosContainer = document.getElementById('scenariosContainer');
+
+    // Estado del escenario guiado activo
+    let activeScenario    = null;
+    let activeStepIndex   = 0;
+
+    // Panel de guía (se inserta dinámicamente en tabScenarios)
+    const guidePanelHtml = `
+      <div id="guidedScenarioPanel" style="display:none; margin-top:14px; background:#0b1420; border:2px solid #2563eb; border-radius:12px; padding:16px; box-shadow:0 8px 24px rgba(0,0,0,0.6);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid #1e3a5f; padding-bottom:8px;">
+          <div>
+            <span style="font-size:9px; background:#1e3a5f; color:#93c5fd; padding:2px 6px; border-radius:4px; font-weight:800; letter-spacing:0.5px;">ALGORITMO GUIADO ERC 2025</span>
+            <div id="guidedScenarioTitle" style="font-size:14px; font-weight:900; color:#60a5fa; margin-top:3px;"></div>
+          </div>
+          <button id="btnExitGuide" style="background:#7f1d1d; color:#fca5a5; border:none; border-radius:5px; padding:5px 12px; font-size:11px; font-weight:700; cursor:pointer;">✕ Cerrar guía</button>
+        </div>
+        <div id="guidedStepContainer" style="margin-bottom:12px;"></div>
+        
+        <div style="font-size:10px; font-weight:800; color:#94a3b8; margin-bottom:6px; letter-spacing:0.5px;">¿EL ALUMNO REALIZA LA ACCIÓN ESPERADA?</div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
+          <button id="btnStepDone" style="background:#15803d; color:#dcfce7; border:1px solid #22c55e; border-radius:8px; padding:12px 10px; font-size:12px; font-weight:900; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:3px;">
+            <span>✅ SÍ</span>
+            <small style="font-size:9px; font-weight:normal; opacity:0.9;">Acción correcta (Rama A)</small>
+          </button>
+          <button id="btnStepSkip" style="background:#991b1b; color:#fee2e2; border:1px solid #ef4444; border-radius:8px; padding:12px 10px; font-size:12px; font-weight:900; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:3px;">
+            <span>❌ NO</span>
+            <small style="font-size:9px; font-weight:normal; opacity:0.9;">Error / Omitido (Deterioro)</small>
+          </button>
+        </div>
+        
+        <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px;">
+          <button id="btnShowHint" style="flex:1; background:#1e3a5f; color:#7dd3fc; border:1px solid #0284c7; border-radius:6px; padding:8px 10px; font-size:11px; font-weight:700; cursor:pointer;">💡 Pista clínica</button>
+          <button id="btnStepPrev" style="background:#1e293b; color:#94a3b8; border:1px solid #334155; border-radius:6px; padding:8px 12px; font-size:11px; cursor:pointer;" title="Volver al paso anterior">⏮️ Paso anterior</button>
+          <button id="btnResetCase" style="background:#1e293b; color:#f87171; border:1px solid #7f1d1d; border-radius:6px; padding:8px 12px; font-size:11px; cursor:pointer;" title="Reiniciar caso a T+0">🔄 Reiniciar T+0</button>
+        </div>
+
+        <div id="guidedStepFeedback" style="margin-top:6px; padding:10px 12px; border-radius:8px; font-size:11px; line-height:1.4; display:none;"></div>
+        
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; border-top:1px solid #1e293b; padding-top:8px;">
+          <span id="guidedStepCounter" style="font-size:11px; color:#64748b; font-weight:700;"></span>
+          <div style="display:flex; gap:5px;" id="guidedStepDots"></div>
+        </div>
+      </div>
+    `;
+
+    const tabScenarios = document.getElementById('tabScenarios');
+    if (tabScenarios) tabScenarios.insertAdjacentHTML('beforeend', guidePanelHtml);
+
+    function renderGuidedStep() {
+      if (!activeScenario || !activeScenario.guidedSteps) return;
+      const steps = activeScenario.guidedSteps;
+      const step  = steps[activeStepIndex];
+      if (!step) return;
+
+      const container = document.getElementById('guidedStepContainer');
+      const counter   = document.getElementById('guidedStepCounter');
+      const dots      = document.getElementById('guidedStepDots');
+      const feedback  = document.getElementById('guidedStepFeedback');
+      if (!container || !step) return;
+
+      feedback.style.display = 'none';
+
+      container.innerHTML = `
+        <div style="font-size:9px; font-weight:800; color:#38bdf8; letter-spacing:1px; margin-bottom:4px; text-transform:uppercase;">${step.phase || ''}</div>
+        <div style="font-size:14px; font-weight:800; color:#f1f5f9; margin-bottom:6px;">${step.title}</div>
+        <div style="font-size:11px; color:#94a3b8; line-height:1.5; margin-bottom:10px; background:#080e18; padding:8px 10px; border-radius:6px; border:1px solid #1e293b;">${step.description}</div>
+        
+        <div style="background:#0f172a; border-left:3px solid #3b82f6; border-radius:4px; padding:8px 10px; margin-bottom:6px;">
+          <div style="font-size:9px; color:#60a5fa; font-weight:700; margin-bottom:2px;">👨‍🏫 ACCIÓN / PREGUNTA DEL INSTRUCTOR:</div>
+          <div style="font-size:11px; color:#bfdbfe;">${step.instructorAction}</div>
+        </div>
+        <div style="background:#0f172a; border-left:3px solid #22c55e; border-radius:4px; padding:8px 10px;">
+          <div style="font-size:9px; color:#4ade80; font-weight:700; margin-bottom:2px;">🎯 RESPUESTA ESPERADA DEL ALUMNO (SÍ):</div>
+          <div style="font-size:11px; color:#bbf7d0;">${step.expectedAction}</div>
+        </div>
+      `;
+
+      counter.textContent = `Paso ${activeStepIndex + 1} de ${steps.length}`;
+      // Dots de progreso
+      dots.innerHTML = steps.map((s, i) => {
+        let color = i < activeStepIndex ? '#22c55e' : i === activeStepIndex ? '#38bdf8' : '#334155';
+        return `<span style="width:9px;height:9px;border-radius:50%;background:${color};display:inline-block;"></span>`;
+      }).join('');
+    }
+
+    function applyVitalsChange(vitalsChange) {
+      if (!vitalsChange) return;
+      if (vitalsChange.hr    !== undefined) { patientState.hr    = vitalsChange.hr;    sliderHr.value = vitalsChange.hr;    labelHrVal.textContent = vitalsChange.hr + ' lpm'; }
+      if (vitalsChange.spo2  !== undefined) { patientState.spo2  = vitalsChange.spo2;  sliderSpo2.value = vitalsChange.spo2; labelSpo2Val.textContent = vitalsChange.spo2 + ' %'; }
+      if (vitalsChange.bpSys !== undefined) { patientState.bpSys = vitalsChange.bpSys; sliderSys.value = vitalsChange.bpSys; labelSysVal.textContent = vitalsChange.bpSys + ' mmHg'; }
+      if (vitalsChange.bpDia !== undefined) { patientState.bpDia = vitalsChange.bpDia; sliderDia.value = vitalsChange.bpDia; labelDiaVal.textContent = vitalsChange.bpDia + ' mmHg'; }
+      if (vitalsChange.rr    !== undefined) { patientState.rr    = vitalsChange.rr;    sliderRr.value = vitalsChange.rr;    labelRrVal.textContent = vitalsChange.rr + ' rpm'; }
+      if (vitalsChange.etco2 !== undefined) { patientState.etco2 = vitalsChange.etco2; sliderEtco2.value = vitalsChange.etco2; labelEtco2Val.textContent = vitalsChange.etco2 + ' mmHg'; }
+      if (vitalsChange.rhythm !== undefined) {
+        patientState.rhythm = vitalsChange.rhythm;
+        document.querySelectorAll('.rhythm-pill-item').forEach(p => {
+          p.classList.toggle('active', p.dataset.rhythmId === patientState.rhythm);
+        });
+        checkRightLeadsSuggestion(patientState.rhythm);
+        autoSelect12Lead(patientState.rhythm);
+        connection.send({ type: 'SET_RHYTHM', rhythm: patientState.rhythm });
+      }
+      currentAppliedVitals = { ...patientState };
+      updateVisorDisplays();
+      connection.send({ type: 'UPDATE_VITALS', vitals: { ...patientState } });
+    }
+
+    function showStepFeedback(text, isSuccess) {
+      const fb = document.getElementById('guidedStepFeedback');
+      if (!fb) return;
+      fb.style.display = 'block';
+      fb.style.background = isSuccess ? '#14532d' : '#7f1d1d';
+      fb.style.color = isSuccess ? '#bbf7d0' : '#fecaca';
+      fb.style.borderLeft = `4px solid ${isSuccess ? '#22c55e' : '#ef4444'}`;
+      fb.textContent = text;
+    }
+
+    function advanceStep() {
+      if (!activeScenario || !activeScenario.guidedSteps) return;
+      activeStepIndex++;
+      if (activeStepIndex >= activeScenario.guidedSteps.length) {
+        // Escenario completado
+        const container = document.getElementById('guidedStepContainer');
+        if (container) container.innerHTML = '<div style="text-align:center;padding:25px;font-size:15px;color:#4ade80;font-weight:900;">🎉 ¡Escenario clínico completado con éxito!</div>';
+        const feedback = document.getElementById('guidedStepFeedback');
+        if (feedback) { feedback.style.display = 'none'; }
+        document.getElementById('btnStepDone').disabled = true;
+        document.getElementById('btnStepSkip').disabled = true;
+        addLogEntry('🎉 [ESCENARIO] Finalizado: ' + activeScenario.title);
+      } else {
+        renderGuidedStep();
+      }
+    }
+
+    // Botones del motor guiado
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      
+      if (btn.id === 'btnStepDone') {
+        const step = activeScenario?.guidedSteps?.[activeStepIndex];
+        if (!step) return;
+        showStepFeedback(step.onSuccess?.message || '✅ Acción realizada correctamente.', true);
+        if (step.onSuccess?.vitalsChange) applyVitalsChange(step.onSuccess.vitalsChange);
+        addLogEntry(`✅ [GUÍA: SÍ] ${step.title}`);
+        setTimeout(advanceStep, 2000);
+      }
+      if (btn.id === 'btnStepSkip') {
+        const step = activeScenario?.guidedSteps?.[activeStepIndex];
+        if (!step) return;
+        showStepFeedback(step.onSkip?.message || '⚠️ Acción omitida o error terapéutico.', false);
+        if (step.onSkip?.vitalsChange) applyVitalsChange(step.onSkip.vitalsChange);
+        addLogEntry(`❌ [GUÍA: NO] ${step.title}`);
+        setTimeout(advanceStep, 2500);
+      }
+      if (btn.id === 'btnShowHint') {
+        const step = activeScenario?.guidedSteps?.[activeStepIndex];
+        if (!step) return;
+        showStepFeedback('💡 Pista clínica: ' + (step.hint || 'Sin pista adicional.'), true);
+      }
+      if (btn.id === 'btnStepPrev') {
+        if (activeStepIndex > 0) {
+          activeStepIndex--;
+          renderGuidedStep();
+          addLogEntry(`⏮️ [GUÍA] Retrocedido a paso ${activeStepIndex + 1}`);
+        }
+      }
+      if (btn.id === 'btnResetCase') {
+        if (activeScenario) {
+          activeStepIndex = 0;
+          document.getElementById('btnStepDone').disabled = false;
+          document.getElementById('btnStepSkip').disabled = false;
+          applyVitalsChange(activeScenario.initialVitals);
+          renderGuidedStep();
+          addLogEntry(`🔄 [GUÍA] Caso reiniciado a T+0: ${activeScenario.title}`);
+        }
+      }
+      if (btn.id === 'btnExitGuide') {
+        document.getElementById('guidedScenarioPanel').style.display = 'none';
+        activeScenario = null;
+        activeStepIndex = 0;
+      }
+    });
+
+    CLINICAL_SCENARIOS.forEach(sc => {
+      const hasGuide = sc.guidedSteps && sc.guidedSteps.length > 0;
+      const card = document.createElement('div');
+      card.className = 'scenario-card';
+      card.innerHTML = `
+        <span class="scenario-badge-code">${sc.code}</span>
+        ${hasGuide ? '<span style="float:right;background:#1e3a5f;color:#60a5fa;border-radius:4px;padding:2px 6px;font-size:9px;font-weight:800;">🗺️ GUIADO</span>' : ''}
+        <div class="scenario-title">${sc.title}</div>
+        <div class="scenario-desc">${sc.description}</div>
+        <div style="display:flex;gap:6px;margin-top:6px;">
+          <button class="quick-step-btn btn-load-sc" style="flex:2;padding:8px;">▶ Cargar Escenario</button>
+          ${hasGuide ? '<button class="quick-step-btn btn-guide-sc" style="flex:1;padding:8px;background:#1e3a5f;color:#60a5fa;">🗺️ Guía paso a paso</button>' : ''}
+        </div>
+      `;
+
+      // Botón cargar escenario
+      card.querySelector('.btn-load-sc').addEventListener('click', () => {
+        patientState = {
+          ...patientState,
+          ...sc.initialVitals,
+          activeSensors: { ...patientState.activeSensors }
+        };
+        currentAppliedVitals = {
+          rhythm: patientState.rhythm,
+          hr: patientState.hr,
+          spo2: patientState.spo2,
+          bpSys: patientState.bpSys,
+          bpDia: patientState.bpDia,
+          rr: patientState.rr,
+          etco2: patientState.etco2
+        };
+        sliderHr.value = patientState.hr;        labelHrVal.textContent  = `${patientState.hr} lpm`;
+        sliderSpo2.value = patientState.spo2;    labelSpo2Val.textContent = `${patientState.spo2} %`;
+        sliderSys.value = patientState.bpSys;    labelSysVal.textContent  = `${patientState.bpSys} mmHg`;
+        sliderDia.value = patientState.bpDia;    labelDiaVal.textContent  = `${patientState.bpDia} mmHg`;
+        sliderRr.value = patientState.rr;         labelRrVal.textContent  = `${patientState.rr} rpm`;
+        sliderEtco2.value = patientState.etco2;  labelEtco2Val.textContent = `${patientState.etco2} mmHg`;
+
+        checkRightLeadsSuggestion(patientState.rhythm);
+        autoSelect12Lead(patientState.rhythm);
+        updateVisorDisplays();
+        connection.send({ type: 'SET_SCENARIO', scenario: sc });
+        addLogEntry(`📋 Escenario cargado: ${sc.title}`);
+
+        // Resetear cronómetro de caso (el instructor lo activará manualmente con un clic)
+        if (window.instructorResetCaseTimer) window.instructorResetCaseTimer();
+
+        document.querySelector('.nav-tab[data-tab="tabUnified"]').click();
+      });
+
+      // Botón guía paso a paso (solo si tiene guidedSteps)
+      const btnGuide = card.querySelector('.btn-guide-sc');
+      if (btnGuide) {
+        btnGuide.addEventListener('click', () => {
+          activeScenario  = sc;
+          activeStepIndex = 0;
+          patientState = {
+            ...patientState,
+            ...sc.initialVitals,
+            activeSensors: { ...patientState.activeSensors }
+          };
+          currentAppliedVitals = {
+            rhythm: patientState.rhythm,
+            hr: patientState.hr,
+            spo2: patientState.spo2,
+            bpSys: patientState.bpSys,
+            bpDia: patientState.bpDia,
+            rr: patientState.rr,
+            etco2: patientState.etco2
+          };
+          sliderHr.value = patientState.hr;        labelHrVal.textContent  = `${patientState.hr} lpm`;
+          sliderSpo2.value = patientState.spo2;    labelSpo2Val.textContent = `${patientState.spo2} %`;
+          sliderSys.value = patientState.bpSys;    labelSysVal.textContent  = `${patientState.bpSys} mmHg`;
+          sliderDia.value = patientState.bpDia;    labelDiaVal.textContent  = `${patientState.bpDia} mmHg`;
+          sliderRr.value = patientState.rr;         labelRrVal.textContent  = `${patientState.rr} rpm`;
+          sliderEtco2.value = patientState.etco2;  labelEtco2Val.textContent = `${patientState.etco2} mmHg`;
+
+          checkRightLeadsSuggestion(patientState.rhythm);
+          autoSelect12Lead(patientState.rhythm);
+          updateVisorDisplays();
+          connection.send({ type: 'SET_SCENARIO', scenario: sc });
+          connection.send({ type: 'UPDATE_VITALS', vitals: { ...patientState } });
+          if (patientState.rhythm) connection.send({ type: 'SET_RHYTHM', rhythm: patientState.rhythm });
+
+          const panel = document.getElementById('guidedScenarioPanel');
+          const title = document.getElementById('guidedScenarioTitle');
+          if (panel) panel.style.display = 'block';
+          if (title) title.textContent = `🗺️ ${sc.title}`;
+          const btnDone = document.getElementById('btnStepDone');
+          const btnSkp  = document.getElementById('btnStepSkip');
+          if (btnDone) btnDone.disabled = false;
+          if (btnSkp)  btnSkp.disabled  = false;
+          renderGuidedStep();
+          addLogEntry(`🗺️ [GUÍA ACTIVADA] ${sc.title} — Constantes T+0 enviadas al monitor`);
+          // Scroll al panel
+          setTimeout(() => panel?.scrollIntoView({ behavior: 'smooth' }), 100);
+        });
+      }
+
+      scenariosContainer.appendChild(card);
+    });
+
+
+    // ── Disparar PANI remotamente ──────────────────────────────────────────
+    document.getElementById('btnForceNibp').addEventListener('click', () => {
+      connection.send({ type: 'START_NIBP_CMD' });
+      addLogEntry('🩺 Toma de PANI forzada desde móvil del instructor');
+    });
+
+    // ── Pantalla en tiempo real del alumno ────────────────────────────────
+    const btnRequestPreview    = document.getElementById('btnRequestPreview');
+    const btnToggleLivePreview = document.getElementById('btnToggleLivePreview');
+    const previewFpsLabel      = document.getElementById('previewFpsLabel');
+    let livePreviewActive      = false;
+    let livePreviewFrameCount  = 0;
+    let livePreviewFpsInterval = null;
+
+    if (btnRequestPreview) {
+      btnRequestPreview.addEventListener('click', () => {
+        connection.send({ type: 'SCREEN_CAPTURE_REQUEST' });
+        addLogEntry('📸 [PANTALLA] Captura única solicitada al alumno');
+      });
+    }
+
+    if (btnToggleLivePreview) {
+      btnToggleLivePreview.addEventListener('click', () => {
+        livePreviewActive = !livePreviewActive;
+        if (livePreviewActive) {
+          connection.send({ type: 'SCREEN_CAPTURE_START' });
+          btnToggleLivePreview.textContent = '⏹ Captura continua ON';
+          btnToggleLivePreview.style.background = '#064e3b';
+          btnToggleLivePreview.style.color = '#4ade80';
+          // Contador de FPS
+          livePreviewFrameCount = 0;
+          livePreviewFpsInterval = setInterval(() => {
+            if (previewFpsLabel) previewFpsLabel.textContent = `~${livePreviewFrameCount} fps`;
+            livePreviewFrameCount = 0;
+          }, 1000);
+          addLogEntry('📺 [PANTALLA] Captura continua ACTIVADA (cada 2s)');
+        } else {
+          connection.send({ type: 'SCREEN_CAPTURE_STOP' });
+          btnToggleLivePreview.textContent = '▶ Captura continua OFF';
+          btnToggleLivePreview.style.background = '#1e3a5f';
+          btnToggleLivePreview.style.color = '#34d399';
+          clearInterval(livePreviewFpsInterval);
+          if (previewFpsLabel) previewFpsLabel.textContent = '-- fps';
+          addLogEntry('📺 [PANTALLA] Captura continua DESACTIVADA');
+        }
+      });
+    }
+
+    // Interceptar mensajes SCREEN_CAPTURE para contar frames
+    const _origHandle = handleStudentMessage;
+    function handleStudentMessage(msg) {
+      if (msg.type === 'SCREEN_CAPTURE') livePreviewFrameCount++;
+      _origHandle(msg);
+    }
+
+
+    // ── Banner de descarga del alumno ──────────────────────────────────────
+    const studentBanner  = document.getElementById('studentBanner');
+    const bannerTitle    = document.getElementById('bannerTitle');
+    const bannerSubtitle = document.getElementById('bannerSubtitle');
+
+    document.getElementById('btnQuickSinus').addEventListener('click', () => {
+      const selPostShock = document.getElementById('selPostShockRhythm');
+      const postRhythm = selPostShock ? selPostShock.value : 'sinus';
+      const postRhythmLabel = selPostShock ? selPostShock.options[selPostShock.selectedIndex].text : 'Ritmo Sinusal';
+      patientState.rhythm = postRhythm;
+      const rhythmData = ECG_RHYTHMS.find(r => r.id === postRhythm);
+      const hr = rhythmData ? rhythmData.defaultHr : 75;
+      patientState.hr = hr;
+      connection.send({ type: 'SET_RHYTHM', rhythm: postRhythm, hr });
+      studentBanner.classList.remove('active');
+      addLogEntry(`⚡ [POST-CHOQUE] Ritmo: ${postRhythmLabel} (${hr} lpm)`);
+      updateVisorDisplays();
+    });
+
+    document.getElementById('btnQuickRefractory').addEventListener('click', () => {
+      studentBanner.classList.remove('active');
+      addLogEntry('Respuesta pedagógica: La arritmia persiste refractaria');
+    });
+
+    document.getElementById('btnDismissBanner').addEventListener('click', () => {
+      studentBanner.classList.remove('active');
+    });
+
+    // ── Mensajes del alumno ────────────────────────────────────────────────
+    function handleStudentMessage(msg) {
+      if (!msg || !msg.type) return;
+
+      switch (msg.type) {
+        case 'SHOCK_DELIVERED':
+          bannerTitle.textContent    = `⚡ ¡DESCARGA ADMINISTRADA! ${msg.joules} JOULES`;
+          bannerSubtitle.textContent = `Modo: ${msg.mode || 'Manual'} — Hora: ${new Date(msg.timestamp).toLocaleTimeString()}`;
+          studentBanner.classList.add('active');
+          addLogEntry(`⚡ [DESCARGA] El alumno descargó ${msg.joules} J (${msg.mode})`);
+          break;
+
+        case 'DEFIB_CHARGING_STARTED':
+          addLogEntry(`🔋 [CARGA] El alumno cargó a ${msg.joules} J`);
+          break;
+
+        case 'NIBP_STARTED':
+          addLogEntry(`🩺 [PANI] El alumno inició la medición de Tensión Arterial`);
+          break;
+
+        case 'NIBP_COMPLETED':
+          addLogEntry(`🩺 [PANI] Medición completada: ${msg.sys}/${msg.dia} mmHg`);
+          break;
+
+        case 'ALARM_SILENCED':
+          addLogEntry(`🔕 [ALARMA] El alumno pausó las alarmas sonoras por 2 min`);
+          break;
+
+        case 'MODE_CHANGED':
+          addLogEntry(`🎛️ [MANDO DFM100] Rueda girada a: ${msg.label} (${msg.mode})`);
+          // Mostrar módulo post-choque cuando el alumno activa modo energía
+          if (msg.mode === 'defib' || msg.mode === 'aed') {
+            bannerTitle.textContent    = `⚡ MODO ENERGÍA ACTIVO — ${msg.joules || ''} J`;
+            bannerSubtitle.textContent = `El alumno ha seleccionado modo desfibrilador. Prepare el ritmo post-choque.`;
+            studentBanner.classList.add('active');
+          } else if (msg.mode !== 'defib' && msg.mode !== 'aed') {
+            // Si abandona modo energía sin descargar, ocultar banner si no hay choque activo
+            if (!bannerTitle.textContent.includes('DESCARGA ADMINISTRADA')) {
+              studentBanner.classList.remove('active');
+            }
+          }
+          break;
+
+        case 'PATIENT_CATEGORY_CHANGED':
+          patientState.patientCategory = msg.category;
+          btnPatient.className  = msg.category === 'pediatric' ? 'btn-header-patient pediatric' : 'btn-header-patient';
+          btnPatient.textContent = msg.category === 'pediatric' ? 'PEDIÁTRICO' : 'ADULTO';
+          addLogEntry(`👶 [PACIENTE] Cambiado a: ${msg.category.toUpperCase()}`);
+          break;
+
+        case 'SYNC_STATE_CHANGED': {
+          const badge = document.getElementById('syncIndicatorBadge');
+          const txt = document.getElementById('syncIndicatorText');
+          if (badge && txt) {
+            if (msg.syncEnabled) {
+              badge.style.background = '#854d0e';
+              badge.style.borderColor = '#eab308';
+              badge.style.color = '#fef08a';
+              txt.textContent = 'ON';
+              txt.style.color = '#4ade80';
+            } else {
+              badge.style.background = '#1e293b';
+              badge.style.borderColor = '#334155';
+              badge.style.color = '#94a3b8';
+              txt.textContent = 'OFF';
+              txt.style.color = '#ef4444';
+            }
+          }
+          addLogEntry(`⚡ [SINCRO] Modo sincronizado: ${msg.syncEnabled ? 'ACTIVADO' : 'DESACTIVADO'}`);
+          break;
+        }
+
+        case 'SCREEN_CAPTURE': {
+          const img = document.getElementById('studentPreviewImg');
+          const ph  = document.getElementById('studentPreviewPlaceholder');
+          if (img && msg.dataUrl) {
+            img.src = msg.dataUrl;
+            img.style.display = 'block';
+            if (ph) ph.style.display = 'none';
+          }
+          break;
+        }
+
+        case 'DEFIB_TIMER_UPDATE': {
+          const el = document.getElementById('defibTimerInstructor');
+          if (el) el.textContent = msg.display || '--:--';
+          break;
+        }
+
+        case 'DEFIB_TIMER_OFF': {
+          const el = document.getElementById('defibTimerInstructor');
+          if (el) el.textContent = '--:--';
+          break;
+        }
+      }
+    }
+
+    // ── Log de eventos ─────────────────────────────────────────────────────
+    function addLogEntry(text) {
+      const log   = document.getElementById('eventLog');
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      const time = new Date().toLocaleTimeString();
+      entry.textContent = `[${time}] ${text}`;
+      log.prepend(entry);
+    }
+
+    // ── Marcapasos: umbral de captura ──────────────────────────────────────────────
+    const sliderPacerThr = document.getElementById('sliderPacerThreshold');
+    const labelPacerThr  = document.getElementById('labelPacerThreshold');
+    if (sliderPacerThr) {
+      sliderPacerThr.addEventListener('input', () => {
+        labelPacerThr.textContent = sliderPacerThr.value + ' mA';
+      });
+      document.getElementById('btnSendPacerThreshold').addEventListener('click', () => {
+        const thr = parseInt(sliderPacerThr.value);
+        connection.send({ type: 'PACER_THRESHOLD', thresholdMa: thr });
+        addLogEntry(`⚡ [MARCAPASOS] Umbral de captura configurado: ${thr} mA`);
+      });
+    }
+
+    // ── Exploración pupilar ───────────────────────────────────────────────
+    const btnSendPupils = document.getElementById('btnSendPupils');
+    if (btnSendPupils) {
+      btnSendPupils.addEventListener('click', () => {
+        const sizeLeft   = parseFloat(document.getElementById('selPupilSizeLeft').value);
+        const sizeRight  = parseFloat(document.getElementById('selPupilSizeRight').value);
+        const reactLeft  = document.getElementById('selPupilReactLeft').value === 'true';
+        const reactRight = document.getElementById('selPupilReactRight').value === 'true';
+        connection.send({
+          type: 'SHOW_PUPILS',
+          pupils: { sizeLeft, sizeRight, reactiveLeft: reactLeft, reactiveRight: reactRight }
+        });
+        addLogEntry(`👁️ [NEURO] Pupilas enviadas: OI ${sizeLeft}mm (${reactLeft?'reactiva':'arreactiva'}), OD ${sizeRight}mm (${reactRight?'reactiva':'arreactiva'})`);
+      });
+    }
+
+    // ── Vía aérea ────────────────────────────────────────────────────────────
+    let selectedAirwayId = null;
+    const airwayUrls = {
+      airway_normal:       'assets/airway/airway_normal.jpg',
+      airway_edema_mild:   'assets/airway/airway_edema_mild.jpg',
+      airway_edema_mod:    'assets/airway/airway_edema_mod.jpg',
+      airway_edema_severe: 'assets/airway/airway_edema_severe.jpg',
+      airway_burn:         'assets/airway/airway_burn.jpg',
+      airway_soot:         'assets/airway/airway_soot.jpg'
+    };
+    document.querySelectorAll('.airway-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.airway-btn').forEach(b => b.style.outline = 'none');
+        btn.style.outline = '2px solid #34d399';
+        selectedAirwayId = btn.dataset.airwayId;
+        document.getElementById('selectedAirwayLabel').textContent = btn.textContent.trim();
+      });
+    });
+    const btnSendAirway = document.getElementById('btnSendAirway');
+    if (btnSendAirway) {
+      btnSendAirway.addEventListener('click', () => {
+        if (!selectedAirwayId) { alert('Selecciona primero un hallazgo de vía aérea.'); return; }
+        connection.send({ type: 'SHOW_AIRWAY', airway: { id: selectedAirwayId, imageUrl: airwayUrls[selectedAirwayId] || '' } });
+        addLogEntry(`🗣️ [VÍA AÉREA] Enviada: ${document.getElementById('selectedAirwayLabel').textContent}`);
+      });
+    }
+
+    // ── Auscultación cardiopulmonar ──────────────────────────────────────────
+    document.querySelectorAll('.ausc-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.ausc-btn').forEach(b => b.style.outline = 'none');
+        btn.style.outline = '2px solid #60a5fa';
+        document.getElementById('activeAuscLabel').textContent = btn.textContent.trim();
+        connection.send({ type: 'PLAY_AUSCULTATION', auscType: btn.dataset.type, soundId: btn.dataset.sound });
+        addLogEntry(`🩺 [AUSCULTACIÓN] ${btn.textContent.trim()}`);
+      });
+    });
+    const btnStopAusc = document.getElementById('btnStopAusc');
+    if (btnStopAusc) {
+      btnStopAusc.addEventListener('click', () => {
+        document.querySelectorAll('.ausc-btn').forEach(b => b.style.outline = 'none');
+        document.getElementById('activeAuscLabel').textContent = '—';
+        connection.send({ type: 'STOP_AUSCULTATION' });
+        addLogEntry('🩺 [AUSCULTACIÓN] Detenida');
+      });
+    }
+
+    // ── Sonidos y frases del paciente (Glasgow) ──────────────────────────────
+    document.querySelectorAll('.vocal-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.vocal-btn').forEach(b => b.style.outline = 'none');
+        btn.style.outline = '2px solid #a78bfa';
+        const vocalId = btn.dataset.vocalId;
+        connection.send({ type: 'PLAY_PATIENT_VOCAL', vocalId });
+        addLogEntry(`🗣️ [PACIENTE] Vocal: ${btn.textContent.trim()}`);
+      });
+    });
+
+    // ── Tarjetas ORL/Garganta (tab Garganta) ─────────────────────────────────
+    const throatUrls = {
+      throat_normal:       'assets/airway/throat_normal.jpg',
+      throat_edema_mild:   'assets/airway/throat_edema_mild.jpg',
+      throat_edema_mod:    'assets/airway/throat_edema_mod.jpg',
+      throat_edema_severe: 'assets/airway/throat_edema_severe.jpg',
+      throat_burn:         'assets/airway/throat_burn.jpg',
+      throat_abscess:      'assets/airway/throat_abscess.jpg'
+    };
+    document.querySelectorAll('.airway-card-item').forEach(card => {
+      card.addEventListener('click', () => {
+        document.querySelectorAll('.airway-card-item').forEach(c => c.style.border = '2px solid #23344a');
+        card.style.border = '2px solid #34d399';
+        selectedAirwayId = card.dataset.airwayId;
+        // Update both possible label elements
+        const lbl1 = document.getElementById('selectedAirwayLabel');
+        const lbl2 = document.getElementById('selectedThroatLabel');
+        const labelText = card.querySelector('div') ? card.querySelector('div').textContent.trim() : card.dataset.airwayId;
+        if (lbl1) lbl1.textContent = labelText;
+        if (lbl2) lbl2.textContent = labelText;
+      });
+    });
+    // Wire both send button IDs (tabAirway uses btnSendAirway, fallback to btnSendThroat)
+    ['btnSendAirway', 'btnSendThroat'].forEach(btnId => {
+      const btn = document.getElementById(btnId);
+      if (btn) {
+        btn.addEventListener('click', () => {
+          if (!selectedAirwayId) return;
+          connection.send({ type: 'SHOW_AIRWAY', airway: { id: selectedAirwayId, imageUrl: throatUrls[selectedAirwayId] || '' } });
+          addLogEntry(`👄 [ORL/GARGANTA] Enviado: ${selectedAirwayId}`);
+        });
+      }
+    });
+
+    updateVisorDisplays();
+
+    // ── CRONÓMETRO DE CASO (arranca cuando el instructor hace clic en él) ────
+    let caseTimerStart    = null;
+    let caseTimerRunning  = false;
+    let caseTimerInterval = null;
+    let caseTimerElapsed  = 0;
+
+    function formatSeconds(s) {
+      const m = Math.floor(s / 60);
+      const sec = s % 60;
+      return String(m).padStart(2,'0') + ':' + String(sec).padStart(2,'0');
+    }
+
+    function startCaseTimer() {
+      if (caseTimerRunning) return;
+      caseTimerStart   = Date.now() - (caseTimerElapsed * 1000);
+      caseTimerRunning = true;
+      const el = document.getElementById('caseTimerDisplay');
+      if (el) el.style.opacity = '1.0';
+      caseTimerInterval = setInterval(() => {
+        caseTimerElapsed = Math.floor((Date.now() - caseTimerStart) / 1000);
+        const el = document.getElementById('caseTimerDisplay');
+        if (el) el.textContent = formatSeconds(caseTimerElapsed);
+      }, 1000);
+    }
+
+    function stopCaseTimer() {
+      caseTimerRunning = false;
+      clearInterval(caseTimerInterval);
+      const el = document.getElementById('caseTimerDisplay');
+      if (el) el.style.opacity = '0.6';
+    }
+
+    function resetCaseTimer() {
+      stopCaseTimer();
+      caseTimerStart = null;
+      caseTimerElapsed = 0;
+      const el = document.getElementById('caseTimerDisplay');
+      if (el) {
+        el.textContent = '00:00';
+        el.style.opacity = '0.8';
+      }
+    }
+
+    const caseTimerBox = document.getElementById('caseTimerBox');
+    if (caseTimerBox) {
+      caseTimerBox.addEventListener('click', () => {
+        if (caseTimerRunning) {
+          stopCaseTimer();
+        } else {
+          startCaseTimer();
+        }
+      });
+    }
+
+    window.instructorResetCaseTimer = resetCaseTimer;
+
+    // ── CRONÓMETRO LIBRE (manual) ─────────────────────────────────────────────
+    let lapTimerRunning  = false;
+    let lapTimerElapsed  = 0;
+    let lapTimerStart    = null;
+    let lapTimerInterval = null;
+
+    const btnLapStart = document.getElementById('btnLapStart');
+    const btnLapReset = document.getElementById('btnLapReset');
+
+    if (btnLapStart) {
+      btnLapStart.addEventListener('click', () => {
+        if (lapTimerRunning) {
+          // PAUSAR
+          lapTimerRunning = false;
+          lapTimerElapsed += Math.floor((Date.now() - lapTimerStart) / 1000);
+          clearInterval(lapTimerInterval);
+          btnLapStart.textContent = '▶';
+        } else {
+          // INICIAR
+          lapTimerRunning = true;
+          lapTimerStart   = Date.now();
+          btnLapStart.textContent = '⏸';
+          lapTimerInterval = setInterval(() => {
+            const total = lapTimerElapsed + Math.floor((Date.now() - lapTimerStart) / 1000);
+            const el = document.getElementById('lapTimerDisplay');
+            if (el) el.textContent = formatSeconds(total);
+          }, 1000);
+        }
+      });
+    }
+
+    if (btnLapReset) {
+      btnLapReset.addEventListener('click', () => {
+        lapTimerRunning  = false;
+        lapTimerElapsed  = 0;
+        lapTimerStart    = null;
+        clearInterval(lapTimerInterval);
+        const el = document.getElementById('lapTimerDisplay');
+        if (el) el.textContent = '00:00';
+        if (btnLapStart) btnLapStart.textContent = '▶';
+      });
+    }
+
+    // ── MICRÓFONO INSTRUCTOR → ALUMNO (WebRTC audio P2P) ──────────────────────
+    let micStream     = null;
+    let micActive     = false;
+    let micCall       = null;
+
+    const btnMicToggle = document.getElementById('btnMicToggle');
+    if (btnMicToggle) {
+      btnMicToggle.addEventListener('click', async () => {
+        if (!micActive) {
+          try {
+            micStream = await navigator.mediaDevices.getUserMedia({
+              audio: {
+                echoCancellation: true,
+                noiseSuppression: false,
+                autoGainControl: true
+              },
+              video: false
+            });
+            // Iniciar llamada de voz con el alumno usando SimConnectionManager
+            if (connection && connection.callPeer) {
+              micCall = connection.callPeer(micStream);
+            }
+            if (connection && connection.send) {
+              connection.send({ type: 'INSTRUCTOR_MIC_ON' });
+            }
+            micActive = true;
+            btnMicToggle.textContent = '🎤 MIC: ON';
+            btnMicToggle.style.background = '#064e3b';
+            btnMicToggle.style.color = '#4ade80';
+            btnMicToggle.style.borderColor = '#16a34a';
+            addLogEntry('🎤 [MIC] Micrófono activado → Transmitiendo voz en tiempo real al alumno');
+          } catch(err) {
+            addLogEntry('🎤 [MIC] Error al acceder al micrófono: ' + err.message);
+          }
+        } else {
+          // DESACTIVAR
+          if (micCall) {
+            try { micCall.close(); } catch(e) {}
+            micCall = null;
+          }
+          if (micStream) {
+            micStream.getTracks().forEach(t => t.stop());
+            micStream = null;
+          }
+          if (connection && connection.send) {
+            connection.send({ type: 'INSTRUCTOR_MIC_OFF' });
+          }
+          micActive = false;
+          btnMicToggle.textContent = '🎤 MIC: OFF';
+          btnMicToggle.style.background = '#1e293b';
+          btnMicToggle.style.color = '#94a3b8';
+          btnMicToggle.style.borderColor = '#334155';
+          addLogEntry('🎤 [MIC] Micrófono desactivado');
+        }
+      });
+    }
+
+  })();
+  </script>
+</body>
+</html>

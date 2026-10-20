@@ -1,0 +1,856 @@
+/* ==========================================================================
+   PHILIPS EFFICIA DFM100 THEME & STYLESHEET
+   Reproducción exacta de interfaz física hospitalaria Philips DFM100
+   Mando selector giratorio en la parte superior derecha con giro táctil
+   Propiedad de Alberto Á. Garra
+   ========================================================================== */
+
+:root {
+  --bg-bezel: #161c24;
+  --bg-screen: #05080c;
+  --bg-card: #0d131a;
+  --bg-card-border: #1a2533;
+  
+  --ecg-green: #00ff66;
+  --spo2-cyan: #00f0ff;
+  --nibp-white: #ffffff;
+  --nibp-orange: #ff9900;
+  --resp-yellow: #ffd700;
+  --temp-blue: #64b5f6;
+  
+  --alarm-red: #ff2233;
+  --alarm-yellow: #ffbb00;
+  
+  --defib-orange: #ff6a00;
+  --defib-red: #d32f2f;
+
+  --font-mono: 'Consolas', 'Courier New', monospace;
+  --font-display: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--bg-bezel);
+  font-family: var(--font-display);
+  color: #e2e8f0;
+}
+
+.philips-device-container {
+  display: flex;
+  flex-direction: column;
+  width: 100vw;
+  height: 100vh;
+  background-color: var(--bg-bezel);
+  position: relative;
+}
+
+/* BARRA SUPERIOR DE ESTADO PHILIPS */
+.top-status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 38px;
+  background: linear-gradient(180deg, #1f2732 0%, #121820 100%);
+  padding: 0 12px;
+  border-bottom: 2px solid #283544;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.top-left-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-badge {
+  color: #8da4be;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  font-size: 13px;
+}
+
+.brand-badge span {
+  color: #ffffff;
+  background: #0077c8;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 11px;
+}
+
+.patient-mode-btn {
+  background: #202d3d;
+  color: #79b8ff;
+  border: 1px solid #354961;
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.patient-mode-btn.pediatric {
+  background: #9c27b0;
+  color: #ffffff;
+  border-color: #ba68c8;
+}
+
+.top-center-alarm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 12px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.4);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.top-center-alarm.alarm-silenced { color: var(--alarm-yellow); }
+
+.top-right-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #a0aec0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.connection-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: 2px 8px;
+  background: #182330;
+  border-radius: 4px;
+  border: 1px solid #2b3b4e;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #718096;
+}
+
+.status-dot.connected {
+  background: #00ff66;
+  box-shadow: 0 0 6px #00ff66;
+}
+
+/* ÁREA PRINCIPAL: ONDAS + PANEL LATERAL DERECHO */
+.monitor-screen {
+  display: flex;
+  flex: 1;
+  background-color: var(--bg-screen);
+  position: relative;
+  overflow: hidden;
+}
+
+.waveforms-container {
+  flex: 1;
+  height: 100%;
+  position: relative;
+  border-right: 2px solid #141c26;
+}
+
+#ecgCanvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.wave-label {
+  position: absolute;
+  left: 10px;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.wave-label-ecg { top: 6px; color: var(--ecg-green); }
+.wave-label-pleth { top: 44%; color: var(--spo2-cyan); }
+.wave-label-resp { top: 73%; color: var(--resp-yellow); }
+
+/* COLUMNA LATERAL DERECHA (INCLUYE EL MANDO GIRATORIO EN LA PARTE SUPERIOR DERECHA) */
+.right-sidebar-column {
+  width: 290px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background-color: #080d13;
+  border-left: 1px solid #1a2533;
+}
+
+/* ==========================================================================
+   MANDO SELECTOR GIRATORIO EN LA PARTE SUPERIOR DERECHA
+   Siempre visible con DEA, MONITOR, ESCALA DE JOULES Y MARCAPASOS
+   Giro directo con el dedo (Touch & Drag)
+   ========================================================================== */
+.top-right-knob-cluster {
+  background: linear-gradient(180deg, #131b26 0%, #0c121a 100%);
+  border-bottom: 2px solid #233448;
+  padding: 6px 6px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  align-items: center;
+}
+
+.knob-header-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.knob-mode-badge {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 900;
+  color: #00ff66;
+  text-transform: uppercase;
+}
+
+.knob-mode-badge.defib { color: var(--defib-orange); }
+.knob-mode-badge.pacer { color: #ba68c8; }
+.knob-mode-badge.aed { color: #0088ff; }
+
+.knob-hint-text {
+  font-size: 10px;
+  color: #798fa7;
+}
+
+.knob-interaction-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+}
+
+/* RUEDA GIRATORIA SVG CON ETIQUETAS EXTERIORES SIEMPRE VISIBLES */
+.knob-wheel-svg-wrapper {
+  width: 236px;
+  height: 236px;
+  flex-shrink: 0;
+  position: relative;
+  touch-action: none;
+  cursor: grab;
+  /* Centrar dentro del cluster */
+  margin: 0 auto;
+  overflow: visible;
+}
+.knob-wheel-svg-wrapper:active {
+  cursor: grabbing;
+}
+
+/* Botones Cargar y Descarga — fila horizontal debajo de la rueda */
+.knob-quick-actions {
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  width: 100%;
+}
+
+.btn-charge {
+  background: linear-gradient(180deg, #ffaa00 0%, #d87700 100%);
+  color: #000;
+  border: 2px solid #ffc247;
+  border-radius: 6px;
+  height: 38px;
+  font-size: 11px;
+  font-weight: 900;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: 0.5px;
+  flex: 1;
+}
+
+.btn-charge.charging {
+  animation: pulse-charge 0.5s infinite alternate;
+}
+
+@keyframes pulse-charge {
+  0% { opacity: 0.6; }
+  100% { opacity: 1.0; filter: drop-shadow(0 0 8px #ffaa00); }
+}
+
+.btn-shock {
+  background: #381515;
+  color: #777;
+  border: 2px solid #4a1d1d;
+  border-radius: 6px;
+  height: 38px;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: not-allowed;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.5;
+  transition: all 0.2s ease;
+  flex: 1;
+}
+
+.btn-shock.ready-to-shock {
+  background: linear-gradient(180deg, #ff2626 0%, #b80000 100%);
+  color: #fff;
+  border-color: #ff5555;
+  cursor: pointer;
+  opacity: 1.0;
+  box-shadow: 0 0 16px rgba(255, 38, 38, 0.9);
+  animation: shock-pulse 0.4s infinite alternate;
+}
+
+@keyframes shock-pulse {
+  0% { transform: scale(1.0); }
+  100% { transform: scale(1.04); box-shadow: 0 0 20px rgba(255, 38, 38, 1); }
+}
+
+/* CAJAS DE CONSTANTES VITALES EN LA COLUMNA DERECHA */
+.vitals-column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 4px 6px;
+  overflow: hidden;
+}
+
+.vital-box {
+  flex: 1;
+  background: var(--bg-card);
+  border: 1px solid var(--bg-card-border);
+  border-radius: 5px;
+  padding: 3px 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+}
+
+.vital-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.vital-name { font-size: 11px; font-weight: 700; }
+.vital-limits { font-family: var(--font-mono); font-size: 9px; opacity: 0.65; }
+
+.vital-main {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.vital-value {
+  font-family: var(--font-mono);
+  font-size: 46px;
+  font-weight: 900;
+  line-height: 0.95;
+  text-align: right;
+  letter-spacing: -1px;
+}
+
+.vital-unit { font-size: 11px; font-weight: 600; opacity: 0.8; }
+
+.vital-hr { color: var(--ecg-green); border-left: 3px solid var(--ecg-green); }
+.vital-hr .heart-icon {
+  display: inline-block;
+  font-size: 13px;
+  margin-right: 3px;
+  transition: transform 0.08s ease;
+}
+.vital-hr .heart-icon.beat {
+  transform: scale(1.35);
+  filter: drop-shadow(0 0 5px var(--ecg-green));
+}
+
+.vital-spo2 { color: var(--spo2-cyan); border-left: 3px solid var(--spo2-cyan); }
+.spo2-pleth-bar-container {
+  width: 100%;
+  height: 3px;
+  background: #0f1c26;
+  border-radius: 2px;
+  overflow: hidden;
+}
+.spo2-pleth-bar {
+  height: 100%;
+  width: 0%;
+  background: var(--spo2-cyan);
+  transition: width 0.15s ease;
+}
+
+.vital-nibp { color: var(--nibp-white); border-left: 3px solid var(--nibp-orange); }
+.nibp-values-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.nibp-sys-dia { font-family: var(--font-mono); font-size: 30px; font-weight: 900; }
+.nibp-map { font-family: var(--font-mono); font-size: 16px; color: var(--nibp-orange); }
+.nibp-inflation-live {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: #ffaa00;
+  font-weight: 800;
+  display: none;
+  text-align: right;
+}
+
+.vital-resp { color: var(--resp-yellow); border-left: 3px solid var(--resp-yellow); }
+.vital-extra-row {
+  display: flex;
+  gap: 3px;
+  flex: 0.8;
+}
+.vital-extra-row .vital-box { padding: 2px 6px; }
+.vital-extra-row .vital-value { font-size: 24px; }
+.vital-etco2 { color: #ffd700; border-left: 3px solid #ffd700; }
+.vital-temp { color: var(--temp-blue); border-left: 3px solid var(--temp-blue); }
+
+/* PANEL INFERIOR DE TECLAS DE ACCIÓN Y MARCAPASOS */
+.bottom-dock {
+  background: #10161f;
+  border-top: 2px solid #1f2b38;
+  padding: 5px 12px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  height: 64px;
+}
+
+.pacer-tray {
+  display: none;
+  background: #171026;
+  border: 1px solid #4a2d7a;
+  padding: 4px 10px;
+  border-radius: 6px;
+  gap: 10px;
+  align-items: center;
+}
+.pacer-tray.active { display: flex; }
+
+.pacer-stat { display: flex; flex-direction: column; font-size: 10px; }
+.pacer-stat strong { font-family: var(--font-mono); font-size: 14px; color: #ba68c8; }
+
+.knob-step-btn {
+  background: #1c2737;
+  color: #fff;
+  border: 1.5px solid #3c5474;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 17px;
+  font-weight: 800;
+  min-width: 46px;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.knob-step-btn:active {
+  background: #3b506c;
+  transform: scale(0.96);
+}
+
+.actions-cluster {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.soft-btn {
+  background: #192330;
+  color: #cbd5e1;
+  border: 1px solid #2c3e54;
+  border-radius: 6px;
+  padding: 4px 10px;
+  height: 48px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.soft-btn:active { background: #26364a; }
+.soft-btn.btn-nibp-start.measuring {
+  background: #874e00;
+  color: #fff;
+  border-color: #ff9900;
+  animation: pulse-charge 0.7s infinite alternate;
+}
+
+.btn-sync {
+  background: #17212d;
+  color: #8da2bb;
+  border: 1px solid #293a4f;
+  border-radius: 6px;
+  padding: 4px 8px;
+  height: 48px;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.btn-sync.active {
+  background: #0077c8;
+  color: #fff;
+  border-color: #33a3ff;
+  box-shadow: 0 0 8px rgba(0, 119, 200, 0.7);
+}
+
+/* MODAL DE ECG DE 12 DERIVACIONES EN PAPEL MILIMETRADO */
+.modal-overlay {
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.88);
+  backdrop-filter: blur(6px);
+  z-index: 2000;
+  align-items: center;
+  justify-content: center;
+}
+.modal-overlay.active { display: flex; }
+
+.ecg12-modal-card {
+  background: #fff;
+  color: #000;
+  border-radius: 8px;
+  width: 95vw;
+  max-width: 1040px;
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.9);
+}
+
+.ecg12-header {
+  background: #1b2129;
+  color: #fff;
+  padding: 8px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ecg12-title { font-size: 15px; font-weight: 800; color: #00ff66; }
+
+.millimeter-paper {
+  background-color: #fff2f2;
+  background-image: 
+    linear-gradient(rgba(255, 120, 120, 0.35) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 120, 120, 0.35) 1px, transparent 1px),
+    linear-gradient(rgba(255, 60, 60, 0.65) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 60, 60, 0.65) 1px, transparent 1px);
+  background-size: 4px 4px, 4px 4px, 20px 20px, 20px 20px;
+  padding: 10px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.ecg12-leads-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.lead-box {
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(255, 100, 100, 0.4);
+  padding: 4px;
+  height: 84px;
+  position: relative;
+}
+
+.lead-title {
+  position: absolute;
+  top: 3px;
+  left: 5px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 900;
+  color: #b30000;
+}
+
+.lead-canvas { width: 100%; height: 100%; }
+
+.rhythm-strip-box {
+  margin-top: 6px;
+  height: 74px;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(255, 100, 100, 0.4);
+  position: relative;
+}
+
+.ecg12-footer {
+  background: #f0f4f8;
+  padding: 8px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  color: #334155;
+  border-top: 1px solid #cbd5e1;
+}
+
+/* LEYENDA OBLIGATORIA DE AUTORÍA */
+.author-legend {
+  font-size: 10px;
+  color: #5a6e85;
+  letter-spacing: 0.5px;
+  text-align: center;
+  padding: 2px 0;
+  background: #0d1218;
+}
+
+/* PANTALLA APAGADA DEL MONITOR (MODO OFF EN LA RUEDA) */
+.monitor-powered-off-screen {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 290px;
+  bottom: 0;
+  background: #000000;
+  z-index: 1500;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #334455;
+  font-family: var(--font-mono);
+}
+.monitor-powered-off-screen.powered-off {
+  display: flex !important;
+}
+
+/* BOTÓN SELECTOR DE DERIVACIÓN JUNTO AL TRAZADO */
+.btn-lead-select-pill {
+  background: #162434;
+  color: #00ff66;
+  border: 1px solid #00e676;
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  font-weight: 800;
+  cursor: pointer;
+  margin-left: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s;
+}
+.btn-lead-select-pill:hover {
+  background: #00e676;
+  color: #06090e;
+}
+
+/* MODAL DE EXPLORACIÓN PUPILAR (NEUROLOGÍA) */
+.pupils-modal-card {
+  background: #0f1722;
+  color: #fff;
+  border-radius: 8px;
+  width: 92vw;
+  max-width: 660px;
+  border: 1px solid #283a50;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.9);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.pupils-modal-header {
+  background: #172333;
+  padding: 10px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #283a50;
+}
+.pupils-title { font-size: 15px; font-weight: 800; color: #00f0ff; }
+
+.pupils-stage {
+  display: flex;
+  justify-content: space-around;
+  padding: 20px 14px;
+  background: #080d14;
+  gap: 12px;
+}
+
+.eye-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #121c29;
+  border: 1px solid #223348;
+  border-radius: 8px;
+  padding: 14px 10px;
+  flex: 1;
+}
+.eye-label {
+  font-size: 11px;
+  font-weight: 800;
+  color: #94a3b8;
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+}
+
+.eye-graphic {
+  width: 140px;
+  height: 80px;
+  background: #f7efe6;
+  border-radius: 50%;
+  border: 3px solid #251d1a;
+  box-shadow: inset 0 0 10px rgba(0,0,0,0.4);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.iris {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #5b3a29 0%, #301b10 80%, #150a04 100%);
+  border: 2px solid #1a0f08;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.pupil {
+  border-radius: 50%;
+  background: #000000;
+  box-shadow: inset 0 0 4px #000;
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1), height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pupil-ruler {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  margin-top: 14px;
+  padding: 4px 6px;
+  background: #172436;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 800;
+  color: #00f0ff;
+  border: 1px solid #2b3d54;
+}
+
+.pupils-controls {
+  padding: 12px 16px;
+  background: #121c29;
+  text-align: center;
+  border-top: 1px solid #223348;
+}
+
+.btn-flashlight {
+  background: linear-gradient(180deg, #ffbb00 0%, #e08b00 100%);
+  color: #000;
+  font-weight: 900;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 24px;
+  font-size: 13px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(255, 187, 0, 0.35);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.15s;
+}
+.btn-flashlight:active, .btn-flashlight.illuminating {
+  background: #ffffff;
+  box-shadow: 0 0 25px #ffea00;
+  transform: scale(0.98);
+}
+
+.pupils-footer, .airway-footer {
+  background: #0a0f16;
+  padding: 8px 16px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 10.5px;
+  color: #64748b;
+  border-top: 1px solid #1a2736;
+}
+
+/* MODAL DE VÍA AÉREA / OROFARINGE */
+.airway-modal-card {
+  background: #0f1722;
+  color: #fff;
+  border-radius: 8px;
+  width: 92vw;
+  max-width: 660px;
+  border: 1px solid #283a50;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.9);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.airway-modal-header {
+  background: #172333;
+  padding: 10px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #283a50;
+}
+.airway-title { font-size: 15px; font-weight: 800; color: #ff9944; }
+.airway-image-container {
+  padding: 14px;
+  background: #080d14;
+  text-align: center;
+}
+.airway-image-container img {
+  max-width: 100%;
+  max-height: 56vh;
+  object-fit: contain;
+  border-radius: 6px;
+  border: 1px solid #2b3d54;
+  background: #000;
+}

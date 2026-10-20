@@ -1,0 +1,502 @@
+/* ==========================================================================
+   INSTRUCTOR MOBILE DASHBOARD THEME & STYLESHEET
+   Visor Unificado Ergonómico para Smartphone
+   Propiedad de Alberto Á. Garra
+   ========================================================================== */
+
+:root {
+  --bg-primary: #0a0e14;
+  --bg-secondary: #131b26;
+  --bg-card: #182230;
+  --bg-card-hover: #202d3e;
+  --border-color: #27374d;
+  
+  --accent-blue: #0088ff;
+  --accent-cyan: #00d4ff;
+  --accent-green: #00e676;
+  --accent-red: #ff334b;
+  --accent-amber: #ffaa00;
+  --accent-purple: #9c27b0;
+  
+  --text-main: #f0f4f8;
+  --text-muted: #8b9bb0;
+  --text-dim: #5c6b7e;
+  
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'Consolas', 'SF Mono', monospace;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-main);
+  font-family: var(--font-sans);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+  padding-bottom: 70px;
+}
+
+/* CABECERA FIJA */
+.instructor-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(19, 27, 38, 0.96);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border-color);
+  padding: 8px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.instructor-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-header-patient {
+  background: #233448;
+  color: #79b8ff;
+  border: 1px solid #3b516b;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-header-patient.pediatric {
+  background: var(--accent-purple);
+  color: #fff;
+  border-color: #ba68c8;
+}
+
+.connection-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #0f1621;
+  padding: 3px 8px;
+  border-radius: 16px;
+  border: 1px solid var(--border-color);
+  font-size: 11px;
+  font-family: var(--font-mono);
+}
+
+.dot-status {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #666;
+}
+.dot-status.connected {
+  background: var(--accent-green);
+  box-shadow: 0 0 6px var(--accent-green);
+}
+
+/* BANNER DE ALERTA DE DESCARGA */
+.student-event-banner {
+  display: none;
+  background: linear-gradient(90deg, #ff334b 0%, #c4001d 100%);
+  color: #fff;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  align-items: center;
+  justify-content: space-between;
+}
+.student-event-banner.active { display: flex; }
+
+.banner-btn {
+  background: rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  color: #fff;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-left: 4px;
+}
+
+/* ==========================================================================
+   VISOR UNIFICADO EN VIVO (VISTA PRINCIPAL DEL INSTRUCTOR)
+   ========================================================================== */
+.unified-dashboard-container {
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* TARJETA DEL VISOR GLOBAL DEL PACIENTE */
+.live-patient-visor-card {
+  background: #0d141e;
+  border: 2px solid #23344a;
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.visor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #1c2a3b;
+  padding-bottom: 6px;
+}
+
+.visor-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: #a0aec0;
+  letter-spacing: 0.5px;
+}
+
+.visor-rhythm-badge {
+  background: #192736;
+  color: #00ff66;
+  border: 1px solid #2d4561;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* CUADRÍCULA DE TODAS LAS CONSTANTES VITALES EN EL MISMO VISOR */
+.unified-vitals-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.visor-stat-box {
+  background: #141d28;
+  border: 1px solid #233144;
+  border-radius: 6px;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.visor-stat-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #7e91a7;
+  display: flex;
+  justify-content: space-between;
+}
+
+.visor-stat-val {
+  font-family: var(--font-mono);
+  font-size: 22px;
+  font-weight: 900;
+  line-height: 1.1;
+  margin-top: 2px;
+}
+
+.visor-stat-box.hr { border-left: 3px solid #00ff66; color: #00ff66; }
+.visor-stat-box.spo2 { border-left: 3px solid #00f0ff; color: #00f0ff; }
+.visor-stat-box.bp { border-left: 3px solid #ffffff; color: #ffffff; }
+.visor-stat-box.rr { border-left: 3px solid #ffd700; color: #ffd700; }
+.visor-stat-box.etco2 { border-left: 3px solid #ffaa00; color: #ffaa00; }
+.visor-stat-box.temp { border-left: 3px solid #64b5f6; color: #64b5f6; }
+
+/* BARRA DE ACTIVACIÓN INMEDIATA DE SENSORES */
+.sensor-chips-row {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 4px 0;
+}
+
+.sensor-chip {
+  background: #192534;
+  color: #8da4be;
+  border: 1px solid #2b3e54;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.sensor-chip.active {
+  background: #0088ff;
+  color: #ffffff;
+  border-color: #33a3ff;
+  box-shadow: 0 0 8px rgba(0, 136, 255, 0.4);
+}
+
+.sensor-chip.active.ecg { background: #008f3d; border-color: #00ff66; }
+.sensor-chip.active.spo2 { background: #008f99; border-color: #00f0ff; }
+
+/* CONTROLES DE TRANSICIÓN INSTANTÁNEA Y DIFERIDA */
+.transition-master-bar {
+  background: #141c27;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.trans-controls-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.btn-instant-apply {
+  background: linear-gradient(180deg, #00c853 0%, #009624 100%);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  flex: 1;
+}
+
+.btn-timed-apply {
+  background: linear-gradient(180deg, #ffaa00 0%, #d87700 100%);
+  color: #000;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  flex: 1;
+}
+
+.trans-selectors-row {
+  display: flex;
+  gap: 6px;
+  font-size: 11px;
+}
+
+.trans-select {
+  flex: 1;
+  background: #0d141e;
+  border: 1px solid #27374d;
+  color: #fff;
+  padding: 6px;
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+/* BUSCADOR Y SELECTOR DE RITMOS AHA / ERC */
+.rhythm-search-section {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.rhythm-search-input {
+  width: 100%;
+  background: #0d141e;
+  border: 1px solid #27374d;
+  padding: 8px 10px;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+
+.rhythm-pills-container {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.rhythm-category-label {
+  font-size: 10px;
+  font-weight: 800;
+  color: #ffaa00;
+  text-transform: uppercase;
+  margin-top: 6px;
+  margin-bottom: 2px;
+  padding-left: 2px;
+}
+
+.rhythm-pill-item {
+  background: #141c27;
+  border: 1px solid #243447;
+  border-radius: 4px;
+  padding: 7px 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.rhythm-pill-item:active { background: #1f2c3d; }
+.rhythm-pill-item.active {
+  background: #0088ff;
+  color: #ffffff;
+  border-color: #33a3ff;
+}
+
+/* AJUSTES DESLIZADORES DE CONSTANTES */
+.sliders-accordion {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.param-slider-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.param-slider-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.v-slider {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: #202c3c;
+  outline: none;
+  -webkit-appearance: none;
+}
+.v-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+/* SECCIÓN: ECG DE 12 DERIVACIONES */
+.ecg12-library-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ecg12-item-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ecg12-item-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: #00ff66;
+}
+
+.ecg12-item-findings {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.btn-send-12lead {
+  background: #0077c8;
+  color: #fff;
+  border: none;
+  padding: 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 4px;
+}
+
+/* NAVEGACIÓN FIJA INFERIOR */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: rgba(19, 27, 38, 0.98);
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-around;
+  padding: 4px 0;
+  z-index: 100;
+}
+
+.nav-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 6px 8px;
+}
+
+.nav-tab.active {
+  color: var(--accent-blue);
+}
+
+.nav-tab-icon { font-size: 16px; }
+
+.tab-content { display: none; padding: 10px; }
+.tab-content.active { display: block; }
+
+/* LEYENDA OBLIGATORIA */
+.author-legend {
+  font-size: 10px;
+  color: #5c6b7e;
+  text-align: center;
+  padding: 8px 0;
+  margin-top: auto;
+}
