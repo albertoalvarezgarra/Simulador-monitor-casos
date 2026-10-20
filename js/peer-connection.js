@@ -77,50 +77,11 @@ class SimConnectionManager {
           this.setupPeerConnection(conn);
         });
 
-        // Recepción de audio del instructor (micrófono en vivo amplificado al máximo)
+        // Recepción de audio del instructor (voz limpia y nítida sin acoples ni distorsión)
         this.peer.on('call', (call) => {
           try {
             call.answer(); // Responder llamada de voz entrante
             call.on('stream', (remoteStream) => {
-              let webAudioSuccess = false;
-              // 1. Amplificación extrema con Web Audio API (GainNode 5.0x + Compresor dinámico)
-              try {
-                const AudioCtx = window.AudioContext || window.webkitAudioContext;
-                if (AudioCtx) {
-                  const actx = window._instrAudioCtx || new AudioCtx();
-                  window._instrAudioCtx = actx;
-                  if (actx.state === 'suspended') {
-                    actx.resume();
-                    // Asegurar reanudación en el primer toque de pantalla si el navegador bloquea autoplay
-                    const resumeOnTap = () => {
-                      if (actx.state === 'suspended') actx.resume();
-                      document.removeEventListener('click', resumeOnTap);
-                      document.removeEventListener('touchstart', resumeOnTap);
-                    };
-                    document.addEventListener('click', resumeOnTap);
-                    document.addEventListener('touchstart', resumeOnTap);
-                  }
-                  const src = actx.createMediaStreamSource(remoteStream);
-                  const gainNode = actx.createGain();
-                  gainNode.gain.setValueAtTime(5.0, actx.currentTime); // +500% ganancia máxima de volumen
-
-                  const comp = actx.createDynamicsCompressor();
-                  comp.threshold.setValueAtTime(-18, actx.currentTime);
-                  comp.knee.setValueAtTime(30, actx.currentTime);
-                  comp.ratio.setValueAtTime(14, actx.currentTime);
-                  comp.attack.setValueAtTime(0.002, actx.currentTime);
-                  comp.release.setValueAtTime(0.20, actx.currentTime);
-
-                  src.connect(gainNode);
-                  gainNode.connect(comp);
-                  comp.connect(actx.destination);
-                  webAudioSuccess = true;
-                }
-              } catch (audioErr) {
-                console.warn('Fallback a audio element standard:', audioErr);
-              }
-
-              // 2. Audio element estándar: si Web Audio funciona, muted=true para no mezclar con audio bajo; si falla, volumen 1.0
               let audioEl = document.getElementById('remoteInstructorAudio');
               if (!audioEl) {
                 audioEl = document.createElement('audio');
@@ -130,9 +91,20 @@ class SimConnectionManager {
                 document.body.appendChild(audioEl);
               }
               audioEl.srcObject = remoteStream;
-              audioEl.muted = webAudioSuccess; // Solo reproducir directo si Web Audio no pudo inicializar
-              audioEl.volume = 1.0;
-              audioEl.play().catch(e => console.warn('Error al reproducir voz del instructor:', e));
+              audioEl.muted = false;
+              // Volumen moderado y limpio (0.50) para evitar acoples (efecto Larsen) con el micrófono
+              audioEl.volume = 0.50;
+              window._remoteInstructorAudio = audioEl;
+              audioEl.play().catch(e => {
+                console.warn('Playback bloqueado por el navegador, esperando toque:', e);
+                const unlock = () => {
+                  audioEl.play().catch(() => {});
+                  document.removeEventListener('click', unlock);
+                  document.removeEventListener('touchstart', unlock);
+                };
+                document.addEventListener('click', unlock);
+                document.addEventListener('touchstart', unlock);
+              });
             });
           } catch(e) {
             console.warn('Error en llamada WebRTC de voz:', e);

@@ -73,22 +73,19 @@
       display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 10px;
     }
     .sensor-chip {
-      display: inline-flex; align-items: center; gap: 5px;
-      background: #1a2535; color: #7a9ab8; border: 1.5px solid #2a3f55;
+      display: inline-flex; align-items: center; gap: 6px;
+      background: #151f2e; color: #64748b; border: 1.5px solid #2a3f55;
       border-radius: 20px; padding: 7px 12px; font-size: 11px;
       font-weight: 700; cursor: pointer; transition: all 0.2s; user-select: none;
     }
     .sensor-chip.active {
-      background: #0a2a18; color: #00e676;
-      border-color: #00c853; box-shadow: 0 0 8px rgba(0,200,83,0.3);
+      background: #0a2a18 !important; color: #00e676 !important;
+      border-color: #00c853 !important; box-shadow: 0 0 10px rgba(0,200,83,0.35) !important;
     }
-    .sensor-chip.active-ecg-leads {
-      background: #0d2233; color: #00cfff;
-      border-color: #00bcd4; box-shadow: 0 0 8px rgba(0,188,212,0.3);
-    }
-    .sensor-chip.active-defib {
-      background: #2a1600; color: #ffb300;
-      border-color: #ff8f00; box-shadow: 0 0 8px rgba(255,143,0,0.3);
+    .sensor-chip:not(.active) {
+      background: #151f2e !important; color: #64748b !important;
+      border-color: #2a3f55 !important; box-shadow: none !important;
+      opacity: 0.75;
     }
   </style>
 </head>
@@ -127,7 +124,10 @@
     <div style="display:flex;gap:8px;align-items:center;">
       <div id="syncIndicatorBadge" style="background:#1e293b;color:#94a3b8;border:1px solid #334155;border-radius:6px;padding:3px 10px;font-size:10px;font-weight:800;letter-spacing:0.5px;">⚡ SINCRO: <span id="syncIndicatorText" style="color:#ef4444;">OFF</span></div>
       <!-- BOTÓN MIC INSTRUCTOR → ALUMNO -->
-      <button id="btnMicToggle" title="Activar/Desactivar micrófono instructor → alumno" style="background:#1e293b;color:#94a3b8;border:1px solid #334155;border-radius:6px;padding:3px 10px;font-size:10px;font-weight:800;cursor:pointer;">🎤 MIC: OFF</button>
+      <div style="display:flex;gap:4px;align-items:center;">
+        <button id="btnMicToggle" title="Activar/Desactivar micrófono instructor → alumno" style="background:#1e293b;color:#94a3b8;border:1px solid #334155;border-radius:6px;padding:3px 10px;font-size:10px;font-weight:800;cursor:pointer;">🎤 MIC: OFF</button>
+        <button id="btnMicVol" title="Ajustar volumen del micrófono en el alumno" style="background:#1e293b;color:#38bdf8;border:1px solid #0369a1;border-radius:6px;padding:3px 8px;font-size:10px;font-weight:800;cursor:pointer;">🔊 75%</button>
+      </div>
       <div class="connection-badge">
         <span class="dot-status" id="connDot"></span>
         <span id="connStatusText">PIN: ----</span>
@@ -210,12 +210,12 @@
         <div style="background:#101722; border:1px solid #23344a; border-radius:8px; padding:10px; display:flex; flex-direction:column; gap:8px;">
           <div style="font-size:11px; color:#8da4be; font-weight:800;">SENSORES ACTIVOS:</div>
           <div class="sensor-chips-row" style="margin-bottom:4px;">
-            <button class="sensor-chip active active-ecg-leads" id="chipSensorEcgLeads"><span>📉 Latiguillos (I/II/III)</span></button>
-            <button class="sensor-chip active active-defib" id="chipSensorDefibPads"><span>⚡ Palas / Parches</span></button>
-            <button class="sensor-chip active" id="chipSensorSpo2"><span>🩺 Pulsioxímetro</span></button>
-            <button class="sensor-chip active" id="chipSensorNibp"><span>🩹 Manguito PANI</span></button>
-            <button class="sensor-chip active" id="chipSensorResp"><span>🫁 Sensor FR</span></button>
-            <button class="sensor-chip active" id="chipSensorEtco2"><span>💨 Capnógrafo</span></button>
+            <button class="sensor-chip" id="chipSensorEcgLeads"><span>📉 Latiguillos (I/II/III)</span></button>
+            <button class="sensor-chip" id="chipSensorDefibPads"><span>⚡ Palas / Parches</span></button>
+            <button class="sensor-chip" id="chipSensorSpo2"><span>🩺 Pulsioxímetro</span></button>
+            <button class="sensor-chip" id="chipSensorNibp"><span>🩹 Manguito PANI</span></button>
+            <button class="sensor-chip" id="chipSensorResp"><span>🫁 Sensor FR</span></button>
+            <button class="sensor-chip" id="chipSensorEtco2"><span>💨 Capnógrafo</span></button>
           </div>
 
           <div class="rcp-control-bar" style="margin-top:auto; padding:6px 10px;">
@@ -676,6 +676,7 @@
         if (status === 'connected') {
           dot.className = 'dot-status connected';
           document.getElementById('connStatusText').textContent = `Tablet OK (${roomCode})`;
+          broadcastSensors();
         } else {
           dot.className = 'dot-status';
           document.getElementById('connStatusText').textContent = status === 'connecting' ? 'Conectando...' : `PIN: ${roomCode}`;
@@ -723,46 +724,44 @@
     function broadcastSensors() {
       connection.send({
         type: 'TOGGLE_SENSOR',
-        activeSensors: patientState.activeSensors
+        activeSensors: { ...patientState.activeSensors }
       });
     }
 
-    // ── Chips de sensores ──────────────────────────────────────────────────
-    // Latiguillos ECG (I/II/III)
-    const chipLeads = document.getElementById('chipSensorEcgLeads');
-    chipLeads.addEventListener('click', () => {
-      patientState.activeSensors.ecg_leads = !patientState.activeSensors.ecg_leads;
-      chipLeads.classList.toggle('active-ecg-leads', patientState.activeSensors.ecg_leads);
-      updateVisorDisplays();
-      broadcastSensors();
-      addLogEntry(`Sensor Latiguillos ECG (I/II/III): ${patientState.activeSensors.ecg_leads ? 'CONECTADO' : 'RETIRADO'}`);
-    });
-
-    // Palas / Parches desfibrilador
-    const chipDefib = document.getElementById('chipSensorDefibPads');
-    chipDefib.addEventListener('click', () => {
-      patientState.activeSensors.defib_pads = !patientState.activeSensors.defib_pads;
-      chipDefib.classList.toggle('active-defib', patientState.activeSensors.defib_pads);
-      updateVisorDisplays();
-      broadcastSensors();
-      addLogEntry(`Sensor Palas/Parches Desfibrilador: ${patientState.activeSensors.defib_pads ? 'CONECTADO' : 'RETIRADO'}`);
-    });
-
-    // Función genérica para el resto de sensores
-    function setupSensorChip(chipId, sensorKey, label) {
-      const chipEl = document.getElementById(chipId);
-      chipEl.addEventListener('click', () => {
-        patientState.activeSensors[sensorKey] = !patientState.activeSensors[sensorKey];
-        chipEl.classList.toggle('active', patientState.activeSensors[sensorKey]);
-        updateVisorDisplays();
-        broadcastSensors();
-        addLogEntry(`Sensor ${label}: ${patientState.activeSensors[sensorKey] ? 'CONECTADO' : 'RETIRADO'}`);
+    // ── Actualizar visualmente todos los chips de sensores ─────────────────
+    function updateAllSensorChips() {
+      const sensors = [
+        { id: 'chipSensorEcgLeads', key: 'ecg_leads', label: '📉 Latiguillos (I/II/III)' },
+        { id: 'chipSensorDefibPads', key: 'defib_pads', label: '⚡ Palas / Parches' },
+        { id: 'chipSensorSpo2',     key: 'spo2',      label: '🩺 Pulsioxímetro' },
+        { id: 'chipSensorNibp',     key: 'nibp',      label: '🩹 Manguito PANI' },
+        { id: 'chipSensorResp',     key: 'resp',      label: '🫁 Sensor FR' },
+        { id: 'chipSensorEtco2',    key: 'etco2',     label: '💨 Capnógrafo' }
+      ];
+      sensors.forEach(s => {
+        const chip = document.getElementById(s.id);
+        if (!chip) return;
+        const isOn = !!patientState.activeSensors[s.key];
+        chip.classList.toggle('active', isOn);
+        chip.innerHTML = `<span>${s.label}</span> <span style="font-size:9px;padding:2px 6px;border-radius:4px;background:${isOn ? '#14532d' : '#1e293b'};color:${isOn ? '#4ade80' : '#94a3b8'};font-weight:900;">${isOn ? 'ON' : 'OFF'}</span>`;
       });
     }
-    setupSensorChip('chipSensorSpo2',  'spo2',  'Pulsioxímetro SpO2');
-    setupSensorChip('chipSensorNibp',  'nibp',  'Manguito PANI');
-    setupSensorChip('chipSensorResp',  'resp',  'Sensor FR');
-    setupSensorChip('chipSensorEtco2', 'etco2', 'Capnógrafo EtCO2');
+
+    function toggleSensor(key, label) {
+      patientState.activeSensors[key] = !patientState.activeSensors[key];
+      updateAllSensorChips();
+      updateVisorDisplays();
+      broadcastSensors();
+      addLogEntry(`Sensor ${label}: ${patientState.activeSensors[key] ? 'CONECTADO (ON)' : 'RETIRADO (OFF)'}`);
+    }
+
+    // Listeners de los chips
+    document.getElementById('chipSensorEcgLeads').addEventListener('click', () => toggleSensor('ecg_leads', 'Latiguillos ECG (I/II/III)'));
+    document.getElementById('chipSensorDefibPads').addEventListener('click', () => toggleSensor('defib_pads', 'Palas/Parches Desfibrilador'));
+    document.getElementById('chipSensorSpo2').addEventListener('click', () => toggleSensor('spo2', 'Pulsioxímetro SpO2'));
+    document.getElementById('chipSensorNibp').addEventListener('click', () => toggleSensor('nibp', 'Manguito PANI'));
+    document.getElementById('chipSensorResp').addEventListener('click', () => toggleSensor('resp', 'Sensor FR'));
+    document.getElementById('chipSensorEtco2').addEventListener('click', () => toggleSensor('etco2', 'Capnógrafo EtCO2'));
 
     // ── Control RCP ────────────────────────────────────────────────────────
     const btnCprStart = document.getElementById('btnCprStart');
@@ -780,7 +779,7 @@
       // Activar palas automáticamente si no hay nada conectado
       if (!patientState.activeSensors.ecg_leads && !patientState.activeSensors.defib_pads) {
         patientState.activeSensors.defib_pads = true;
-        chipDefib.classList.add('active-defib');
+        updateAllSensorChips();
         updateVisorDisplays();
         broadcastSensors();
       }
@@ -1283,6 +1282,11 @@
         autoSelect12Lead(patientState.rhythm);
         connection.send({ type: 'SET_RHYTHM', rhythm: patientState.rhythm });
       }
+      if (vitalsChange.activeSensors) {
+        patientState.activeSensors = { ...patientState.activeSensors, ...vitalsChange.activeSensors };
+        updateAllSensorChips();
+        broadcastSensors();
+      }
       currentAppliedVitals = { ...patientState };
       updateVisorDisplays();
       connection.send({ type: 'UPDATE_VITALS', vitals: { ...patientState } });
@@ -1385,7 +1389,7 @@
         patientState = {
           ...patientState,
           ...sc.initialVitals,
-          activeSensors: { ...patientState.activeSensors }
+          activeSensors: sc.initialVitals.activeSensors ? { ...sc.initialVitals.activeSensors } : { ...patientState.activeSensors }
         };
         currentAppliedVitals = {
           rhythm: patientState.rhythm,
@@ -1405,8 +1409,10 @@
 
         checkRightLeadsSuggestion(patientState.rhythm);
         autoSelect12Lead(patientState.rhythm);
+        updateAllSensorChips();
         updateVisorDisplays();
         connection.send({ type: 'SET_SCENARIO', scenario: sc });
+        broadcastSensors();
         addLogEntry(`📋 Escenario cargado: ${sc.title}`);
 
         // Resetear cronómetro de caso (el instructor lo activará manualmente con un clic)
@@ -1424,7 +1430,7 @@
           patientState = {
             ...patientState,
             ...sc.initialVitals,
-            activeSensors: { ...patientState.activeSensors }
+            activeSensors: sc.initialVitals.activeSensors ? { ...sc.initialVitals.activeSensors } : { ...patientState.activeSensors }
           };
           currentAppliedVitals = {
             rhythm: patientState.rhythm,
@@ -1444,9 +1450,11 @@
 
           checkRightLeadsSuggestion(patientState.rhythm);
           autoSelect12Lead(patientState.rhythm);
+          updateAllSensorChips();
           updateVisorDisplays();
           connection.send({ type: 'SET_SCENARIO', scenario: sc });
           connection.send({ type: 'UPDATE_VITALS', vitals: { ...patientState } });
+          broadcastSensors();
           if (patientState.rhythm) connection.send({ type: 'SET_RHYTHM', rhythm: patientState.rhythm });
 
           const panel = document.getElementById('guidedScenarioPanel');
@@ -1781,6 +1789,7 @@
       }
     });
 
+    updateAllSensorChips();
     updateVisorDisplays();
 
     // ── CRONÓMETRO DE CASO (arranca cuando el instructor hace clic en él) ────
@@ -1886,6 +1895,21 @@
     let micStream     = null;
     let micActive     = false;
     let micCall       = null;
+    let currentMicVol = 0.50;
+
+    const btnMicVol = document.getElementById('btnMicVol');
+    if (btnMicVol) {
+      btnMicVol.textContent = '🔊 50%';
+      btnMicVol.addEventListener('click', () => {
+        if (currentMicVol === 0.50) currentMicVol = 0.70;
+        else if (currentMicVol === 0.70) currentMicVol = 0.90;
+        else if (currentMicVol === 0.90) currentMicVol = 0.35;
+        else currentMicVol = 0.50;
+        btnMicVol.textContent = `🔊 ${Math.round(currentMicVol * 100)}%`;
+        connection.send({ type: 'SET_MIC_VOLUME', volume: currentMicVol });
+        addLogEntry(`🔊 [VOLUMEN VOZ] Ajustado a ${Math.round(currentMicVol * 100)}% en el monitor`);
+      });
+    }
 
     const btnMicToggle = document.getElementById('btnMicToggle');
     if (btnMicToggle) {
@@ -1895,7 +1919,7 @@
             micStream = await navigator.mediaDevices.getUserMedia({
               audio: {
                 echoCancellation: true,
-                noiseSuppression: false,
+                noiseSuppression: true,
                 autoGainControl: true
               },
               video: false
@@ -1905,7 +1929,7 @@
               micCall = connection.callPeer(micStream);
             }
             if (connection && connection.send) {
-              connection.send({ type: 'INSTRUCTOR_MIC_ON' });
+              connection.send({ type: 'INSTRUCTOR_MIC_ON', volume: currentMicVol });
             }
             micActive = true;
             btnMicToggle.textContent = '🎤 MIC: ON';

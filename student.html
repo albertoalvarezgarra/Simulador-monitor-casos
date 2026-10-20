@@ -1338,8 +1338,17 @@ html, body {
       case 'TOGGLE_SENSOR':
         if (msg.activeSensors) {
           ecgEngine.setState({ activeSensors: msg.activeSensors });
+          if (typeof updateDisplayValues === 'function') updateDisplayValues();
         }
         break;
+
+      case 'SET_MIC_VOLUME': {
+        const audioEl = document.getElementById('remoteInstructorAudio') || window._remoteInstructorAudio;
+        if (audioEl && typeof msg.volume === 'number') {
+          audioEl.volume = Math.max(0.05, Math.min(1.0, msg.volume));
+        }
+        break;
+      }
 
       case 'SET_SCENARIO':
         if (msg.scenario) {
@@ -1455,10 +1464,14 @@ html, body {
       }
 
       case 'INSTRUCTOR_MIC_ON': {
+        const audioEl = document.getElementById('remoteInstructorAudio') || window._remoteInstructorAudio;
+        if (audioEl && typeof msg.volume === 'number') {
+          audioEl.volume = Math.max(0.05, Math.min(1.0, msg.volume));
+        }
         // Atenuar sonidos del simulador para priorizar la voz del instructor (ducking)
         if (typeof audioSynth !== 'undefined' && audioSynth) {
           audioSynth._origMasterVolume = audioSynth.masterVolume;
-          audioSynth.masterVolume = 0.10;
+          audioSynth.masterVolume = 0.15;
         }
         // Mostrar aviso de que el instructor está hablando
         let micBanner = document.getElementById('instrMicBanner');
